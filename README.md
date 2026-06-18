@@ -1,0 +1,1 @@
+# worldcup-friends-betting
