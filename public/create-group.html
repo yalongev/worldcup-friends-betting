@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>יצירת קבוצת הימורי מונדיאל</title>
+    <style>
+        body { font-family: system-ui, Arial; background: #eef2f3; padding: 20px; direction: rtl; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { color: #1e3c72; text-align: center; margin-top: 0; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 6px; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        
+        /* אזור תוצאת השיתוף */
+        .share-box { display: none; background: #f8f9fa; border: 2px dashed #28a745; border-radius: 8px; padding: 15px; margin-top: 20px; }
+        .share-text { background: white; border: 1px solid #ddd; padding: 10px; border-radius: 6px; white-space: pre-wrap; font-size: 14px; margin-bottom: 10px; color: #333; }
+        .whatsapp-btn { background: #25D366; color: white; }
+        .whatsapp-btn:hover { background: #218838; }
+
+        /* כפתור עזרה קטן */
+        .btn-help {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-help:hover { background: #bbdefb; }
+
+        /* רקע עמום לפופאפ */
+        .modal-overlay {
+            display: none; /* מוסתר כברירת מחדל */
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* תיבת התוכן של הפופאפ */
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .modal-header h3 { margin: 0; color: #1e3c72; }
+        .modal-close { font-size: 24px; cursor: pointer; color: #aaa; }
+        .modal-close:hover { color: black; }
+
+        /* רשימת השלבים */
+        .steps-list { padding-right: 20px; line-height: 1.6; }
+        .steps-list li { margin-bottom: 12px; color: #333; }
+
+        /* כפתור הפניה לפייבוקס */
+        .paybox-redirect-btn {
+            display: inline-block;
+            background: #4169e1;
+            color: white;
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .paybox-redirect-btn:hover { background: #274fa1; color: white; }
+
+        .modal-footer { text-align: left; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+        .btn-confirm-modal { background: #1e3c72; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="setupForm">
+    <h2>🛠️ הקמת קבוצת הימורים חדשה</h2>
+    <p>מלא את הפרטים כדי לייצר לינק הזמנה מותאם אישית לחבר'ה שלך בוואטסאפ.</p>
+        
+    <div class="form-group">
+        <label>שם הקבוצה (למשל: החבר'ה מהעבודה):</label>
+        <input type="text" id="groupName" placeholder="הכנס שם קבוצה">
+    </div>
+
+    <div class="form-group">
+        <label style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🔗 קישור לקבוצת PayBox (לאיסוף הכסף):</span>
+            <button type="button" class="btn-help" onclick="openPayboxModal()">ℹ️ איך יוצרים קישור?</button>
+        </label>
+        <input type="url" id="payboxLink" placeholder="הדבק כאן את קישור השיתוף של פייבוקס">
+    </div>
+
+    <div class="form-group">
+        <label>💰 עלות השתתפות לאדם (ב-₪):</label>
+        <input type="number" id="entryFee" placeholder="למשל: 50" value="50">
+    </div>
+
+    <div id="payboxModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📱 איך מקימים קבוצת PayBox ומביאים לינק?</h3>
+                <span class="modal-close" onclick="closePayboxModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <ol class="steps-list">
+                    <li>
+                        <strong>פתחו את אפליקציית פייבוקס:</strong><br>
+                        לחצו כאן למעבר מהיר: 
+                        <a href="https://www.payboxapp.com/" target="_blank" class="paybox-redirect-btn">🚀 פתח את PayBox כעת</a>
+                    </li>
+                    <li>
+                        <strong>הקימו קבוצה חדשה:</strong><br>
+                        לחצו על פלוס (<b>+</b>), בחרו "הקמת קבוצה", ותנו לה שם מגניב (למשל: <i>"מונדיאל 2026 - החבר'ה מהעבודה 🏆"</i>).
+                    </li>
+                    <li>
+                        <strong>הגדירו יעד ותשלום:</strong><br>
+                        מומלץ להגדיר את עלות ההשתתפות שקבעתם כאן בטופס כדי שכולם ידעו כמה להעביר.
+                    </li>
+                    <li>
+                        <strong>העתיקו את קישור השיתוף:</strong><br>
+                        בתוך הקבוצה החדשה שפתחתם בפייבוקס, לחצו על <b>"הזמנת חברים"</b> או <b>"שיתוף לינק לקבוצה"</b> והעתיקו את הקישור שמתקבל.
+                    </li>
+                    <li>
+                        <strong>הדביקו וחזרו אלינו:</strong><br>
+                        חזרו לעמוד זה והדביקו את הקישור בשדה שמימין לפופאפ הזה. זה הכל!
+                    </li>
+                </ol>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-confirm-modal" onclick="closePayboxModal()">הבנתי, תודה!</button>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="createNewGroup()">צור קבוצה והפק לינק לוואטסאפ</button>
+</div>
+
+<div class="container" id="shareBox" style="display: none;">
+    <h3 style="color: #28a745; margin-top:0;">🎉 הקבוצה נוצרה בהצלחה!</h3>
+    <p>הנה הודעת ההזמנה המוכנה עבור החברים. העתק אותה ושלח אותה ישירות לקבוצה בוואטסאפ:</p>
+    
+    <div id="shareText" class="share-text"></div>
+    
+    <button onclick="copyToClipboard()">📋 העתק טקסט הודעה</button>
+    <button class="whatsapp-btn" onclick="shareToWhatsApp()">💬 שלח ישירות לוואטסאפ</button>
+</div>
+
+<script>
+    let generatedInviteLink = "";
+    let groupNameSaved = "";
+
+    async function createNewGroup() {
+        const groupName = document.getElementById('groupName').value.trim();
+        const payboxLink = document.getElementById('payboxLink').value.trim();
+        const adminId = "admin_" + Math.random().toString(36).substr(2, 5); // מזהה מנהל זמני
+
+        if (!groupName) return alert('נא להזין שם קבוצה');
+
+        try {
+            const entryFee = document.getElementById('entryFee').value.trim() || 0;
+
+            const res = await fetch('/api/groups/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName, adminId, payboxLink, entryFee: parseInt(entryFee) })
+            });
+            
+            const data = await res.json();
+            
+            if (data.success) {
+                groupNameSaved = groupName;
+                const baseUrl = window.location.origin;
+                generatedInviteLink = `${baseUrl}/index.html?groupId=${data.groupId}`;
+                
+                const whatsappMessage = 
+`🏆 *טורניר הימורי המונדיאל של ${groupNameSaved}!* 🏆
+
+חברים, פתחנו קבוצת ניחושים רשמית! מי הולך לקחת את הגביע ומי יהיה מלך השערים? 🤔
+
+*איך משתתפים?*
+1️⃣ נכנסים ללינק, נרשמים בשם שלכם ומזינים את הניחוש:
+👉 ${generatedInviteLink}
+2️⃣ משלמים בפייבוקס שבתוך הלינק כדי להיכנס רשמית לטבלה.
+
+⏰ *שימו לב:* ניתן לשנות את הניחושים שלכם באופן חופשי עד לסוף שלב הבתים! בהצלחה ⚽🔥`;
+
+                document.getElementById('shareText').innerText = whatsappMessage;
+                document.getElementById('setupForm').style.display = 'none';
+                document.getElementById('shareBox').style.display = 'block';
+            }
+        } catch (error) {
+            console.error("Error creating group:", error);
+            alert("שגיאה ביצירת הקבוצה");
+        }
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('shareText').innerText;
+        navigator.clipboard.writeText(text);
+        alert('ההודעה הועתקה למקלדת! עכשיו פשוט כנס לוואטסאפ ותעשה "הדבק" (Paste) בקבוצה.');
+    }
+
+    function shareToWhatsApp() {
+        const text = document.getElementById('shareText').innerText;
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    // 🛠️ תיקון כפל ה-style.style שהיה כאן
+    function openPayboxModal() {
+        document.getElementById('payboxModal').style.display = 'flex';
+    }
+
+    function closePayboxModal() {
+        document.getElementById('payboxModal').style.display = 'none';
+    }
+
+    // 🔒 סגירה בלחיצה בכל מקום על הרקע הכהה, למעט לחיצה על כפתור הפייבוקס עצמו
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('payboxModal');
+        // אם הלחיצה הייתה ישירות על הרקע הכהה (ה-overlay)
+        if (event.target === modal) {
+            closePayboxModal();
+        }
+    });
+</script>
+</body>
+</html>

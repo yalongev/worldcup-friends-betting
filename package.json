@@ -1,0 +1,14 @@
+{
+  "name": "worldcup-friends-betting",
+  "version": "1.0.0",
+  "description": "אפליקציית הימורי מונדיאל לחברים",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
+  }
+}

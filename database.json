@@ -1,0 +1,133 @@
+{
+  "users": {
+    "user_5l694793f": {
+      "name": "ילון גב",
+      "email": "",
+      "created_at": "2026-06-18T10:30:17.906Z"
+    },
+    "user_9atq76rjq": {
+      "name": "מהמר על מסי",
+      "email": "",
+      "created_at": "2026-06-18T11:11:33.494Z"
+    },
+    "user_100172p8s": {
+      "name": "רונלדוווו",
+      "email": "",
+      "created_at": "2026-06-18T11:23:03.780Z"
+    },
+    "user_z3lvsrcvn": {
+      "name": "אבי כהן",
+      "email": "",
+      "created_at": "2026-06-18T11:26:57.147Z"
+    }
+  },
+  "groups": {
+    "group_test123": {
+      "group_name": "קבוצת בדיקה",
+      "admin_id": "admin",
+      "paybox_link": "",
+      "status": "voting_open",
+      "members": {
+        "user_5l694793f": {
+          "has_paid": false,
+          "total_score": 0
+        }
+      },
+      "points_system": {
+        "first_place": 10,
+        "second_place": 3,
+        "third_place": 1
+      }
+    },
+    "group_86253pr3k": {
+      "group_name": "המשפחה המהמרת ⚽",
+      "admin_id": "admin_2atc9",
+      "paybox_link": "",
+      "status": "voting_open",
+      "members": {
+        "admin_2atc9": {
+          "has_paid": true,
+          "total_score": 0
+        }
+      },
+      "points_system": {
+        "first_place": 10,
+        "second_place": 3,
+        "third_place": 1
+      }
+    },
+    "group_lfcw0qpbh": {
+      "group_name": "מהמונדיאל 2026",
+      "admin_id": "user_9atq76rjq",
+      "paybox_link": "",
+      "status": "voting_open",
+      "members": {
+        "admin_hwb1e": {
+          "has_paid": true,
+          "total_score": 0
+        },
+        "user_9atq76rjq": {
+          "has_paid": true,
+          "total_score": 0
+        },
+        "user_100172p8s": {
+          "has_paid": false,
+          "total_score": 0
+        },
+        "user_z3lvsrcvn": {
+          "has_paid": false,
+          "total_score": 0
+        }
+      },
+      "points_system": {
+        "first_place": 10,
+        "second_place": 3,
+        "third_place": 1
+      }
+    }
+  },
+  "predictions": {
+    "group_lfcw0qpbh": {
+      "user_9atq76rjq": {
+        "updated_at": "2026-06-18T12:07:30.669Z",
+        "teams": {
+          "first": "France",
+          "second": "Brazil",
+          "third": ""
+        },
+        "scorers": {
+          "first": "Mbappe",
+          "second": "",
+          "third": ""
+        }
+      },
+      "user_100172p8s": {
+        "updated_at": "2026-06-18T11:23:12.853Z",
+        "teams": {
+          "first": "Germany",
+          "second": "France",
+          "third": ""
+        },
+        "scorers": {
+          "first": "Messi",
+          "second": "",
+          "third": ""
+        }
+      },
+      "user_z3lvsrcvn": {
+        "updated_at": "2026-06-18T11:27:07.150Z",
+        "teams": {
+          "first": "Brazil",
+          "second": "France",
+          "third": ""
+        },
+        "scorers": {
+          "first": "Messi",
+          "second": "",
+          "third": ""
+        }
+      }
+    }
+  },
+  "system_results": {}
+}

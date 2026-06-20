@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הזנת ניחושים - מונדיאל</title>
+    <style>
+        body { font-family: system-ui, Arial; background: #eef2f3; padding: 20px; direction: rtl; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { color: #1e3c72; text-align: center; margin-top: 0; }
+        .group-title { text-align: center; color: #7f8c8d; font-size: 18px; font-weight: bold; margin-bottom: 20px; background: #f8f9fa; padding: 8px; border-radius: 6px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; }
+        select, input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        button { background: #28a745; color: white; border: none; padding: 12px; width: 100%; cursor: pointer; border-radius: 6px; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #218838; }
+        .link-btn { background: #007bff; display: block; text-align: center; text-decoration: none; color: white; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-weight: bold; }
+        .welcome-msg { background: #e2f0d9; padding: 10px; border-radius: 6px; text-align: center; margin-bottom: 15px; font-weight: bold; color: #385723; }
+        #registerScreen { display: none; }
+        #bettingScreen { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="groupNameHeader" class="group-title">טוען נתוני קבוצה...</div>
+
+    <div id="registerScreen">
+        <h2>👋 ברוך הבא לטורניר!</h2>
+        <p>נראה שזו הכניסה הראשונה שלך מקבוצת הוואטסאפ. איך קוראים לך?</p>
+        <div class="form-group">
+            <label>שם מלא לקבוצה:</label>
+            <input type="text" id="userNameInput" placeholder="הקלד שם פרטי ומשפחה">
+        </div>
+        <button onclick="joinGroup()">הצטרף לקבוצה והמשך להימורים</button>
+    </div>
+
+    <div id="bettingScreen">
+        <div id="welcomeUser" class="welcome-msg"></div>
+        <h2>🏆 הימורי המונדיאל שלי 🏆</h2>
+        <a id="payboxLinkBtn" href="#" target="_blank" class="link-btn">💰 לחץ כאן לתשלום ב-PayBox</a>
+        
+        <div class="form-group">
+            <label>🥇 מקום ראשון (האלופה)</label>
+            <select id="teamFirst">
+                <option value="Argentina">ארגנטינה 🇦🇷</option>
+                <option value="Brazil">ברזיל 🇧🇷</option>
+                <option value="France">צרפת 🇫🇷</option>
+                <option value="Germany">גרמניה 🇩🇪</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>🥈 מקום שני (סגנית)</label>
+            <select id="teamSecond">
+                <option value="France">צרפת 🇫🇷</option>
+                <option value="Brazil">ברזיל 🇧🇷</option>
+                <option value="Argentina">ארגנטינה 🇦🇷</option>
+            </select>
+        </div>
+       <div class="form-group">
+            <label>⚽ מלך השערים (מקום 1)</label>
+            <select id="scorerFirst">
+                <option value="">-- בחר שחקן --</option>
+                <option value="Mbappe">קיליאן אמבפה 🇫🇷</option>
+                <option value="Messi">ליונל מסי 🇦🇷</option>
+                <option value="Kane">הארי קיין 🏴󠁧󠁢󠁥󠁮󠁧󠁿</option>
+                <option value="Ronaldo">כריסטיאנו רונלדו 🇵🇹</option>
+            </select>
+        </div>
+        <button onclick="savePredictions()">שמור את הניחושים שלי</button>
+    </div>
+</div>
+
+<script>
+  
+  const urlParams = new URLSearchParams(window.location.search);
+const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123"; 
+
+let CURRENT_USER_ID = null;
+let CURRENT_USER_NAME = null;
+
+// פונקציה לטעינת פרטי הקבוצה מהשרת (מעודכנת עם חסימת נעילה)
+async function fetchGroupDetails() {
+    try {
+        const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}`);
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById('groupNameHeader').innerText = `קבוצה: ${data.group.group_name}`;
+            
+            if(data.group.paybox_link) {
+                document.getElementById('payboxLinkBtn').href = data.group.paybox_link;
+            }
+
+            // 🔥 בדיקה האם המנהל נעל את ההימורים לקבוצה זו
+            if (data.group && data.group.betsLocked) {
+                disableFormForLock();
+            }
+
+        } else {
+            document.getElementById('groupNameHeader').innerText = "שגיאה: קבוצה לא קיימת";
+        }
+    } catch (error) {
+        console.error("Error fetching group:", error);
+    }
+}
+
+// 🔐 פונקציית עזר שמכבה את הדף ברגע שההימורים נעולים
+function disableFormForLock() {
+    // 1. הוספת הודעת אזהרה בולטת בראש העמוד
+    if (!document.getElementById('lockAlert')) {
+        const alertBox = document.createElement('div');
+        alertBox.id = 'lockAlert';
+        alertBox.innerHTML = "🛑 <b>ההימורים לקבוצה זו ננעלו!</b> הטורניר החל, ניתן לצפות בניחושים אך לא לשנותם.";
+        alertBox.style = "background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 20px; font-weight: bold; border: 1px solid #f5c6cb;";
+        
+        // הזרקה בראש הקונטיינר
+        const container = document.querySelector('.container');
+        if (container) {
+            container.insertBefore(alertBox, container.firstChild);
+        }
+    }
+
+    // 2. השבתת כפתור השמירה
+    // (החלף את 'saveBetsBtn' ב-ID האמיתי של כפתור השמירה שלך אם יש לו כזה, או השתמש ב-querySelector)
+    const saveBtn = document.getElementById('saveBetsBtn') || document.querySelector('button[onclick*="save"]');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerText = "🔒 ההימורים נעולים";
+        saveBtn.style.background = "#6c757d";
+        saveBtn.style.cursor = "not-allowed";
+    }
+
+    // 3. חסימת כל שדות הבחירה (select) והקלט (input) בדף
+    const allInputs = document.querySelectorAll('select, input');
+    allInputs.forEach(input => {
+        input.disabled = true;
+    });
+}
+
+function checkUserSession() {
+    const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+    
+    if (sessions[CURRENT_GROUP_ID]) {
+        CURRENT_USER_ID = sessions[CURRENT_GROUP_ID].userId;
+        CURRENT_USER_NAME = sessions[CURRENT_GROUP_ID].userName;
+        showBettingScreen();
+        // 🔥 פונקציה חדשה: אחרי שהמסך מוצג, נטען את ההימורים הקיימים של המשתמש מהשרת
+        loadSavedPredictions();
+    } else {
+        document.getElementById('registerScreen').style.display = 'block';
+    }
+}
+
+function showBettingScreen() {
+    document.getElementById('registerScreen').style.display = 'none';
+    document.getElementById('bettingScreen').style.display = 'block';
+    document.getElementById('welcomeUser').innerText = `מחובר כעת בתור: ${CURRENT_USER_NAME}`;
+}
+
+// 🔥 הפונקציה החדשה שטוענת את הניחושים שכבר נשמרו ומציגה אותם בטופס
+async function loadSavedPredictions() {
+    try {
+        const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}`);
+        if (res.ok) {
+            const data = await res.json();
+            const predictions = data.predictions || {};
+            
+            // בדיקה האם למשתמש הנוכחי יש כבר הימור שמור בשרת לקבוצה הזו
+            if (predictions[CURRENT_USER_ID]) {
+                const myPred = predictions[CURRENT_USER_ID];
+                
+                // עדכון ה-Dropdowns לפי מה שנשמר ב-DB
+                if (myPred.teams && myPred.teams.first) {
+                    document.getElementById('teamFirst').value = myPred.teams.first;
+                }
+                if (myPred.teams && myPred.teams.second) {
+                    document.getElementById('teamSecond').value = myPred.teams.second;
+                }
+                if (myPred.scorers && myPred.scorers.first) {
+                    document.getElementById('scorerFirst').value = myPred.scorers.first;
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error loading user predictions:", error);
+    }
+}
+
+async function joinGroup() {
+    const name = document.getElementById('userNameInput').value.trim();
+    if(!name) return alert('נא להזין שם כדי להמשיך');
+
+    const res = await fetch('/api/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId: CURRENT_GROUP_ID, name: name })
+    });
+    
+    const data = await res.json();
+    if(data.success) {
+        const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+        sessions[CURRENT_GROUP_ID] = { userId: data.userId, userName: data.name };
+        localStorage.setItem('worldcup_sessions', JSON.stringify(sessions));
+        
+        CURRENT_USER_ID = data.userId;
+        CURRENT_USER_NAME = data.name;
+        
+        showBettingScreen();
+    } else {
+        alert('שגיאה בהצטרפות: ' + data.message);
+    }
+}
+
+async function savePredictions() {
+    const payload = {
+        groupId: CURRENT_GROUP_ID,
+        userId: CURRENT_USER_ID,
+        userName: CURRENT_USER_NAME, // נשמר בשביל הלידרבורד
+        teams: { first: document.getElementById('teamFirst').value, second: document.getElementById('teamSecond').value, third: "" },
+        scorers: { first: document.getElementById('scorerFirst').value, second: "", third: "" }
+    };
+    
+    try {
+        const res = await fetch('/api/predictions/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert('הניחושים נשמרו בהצלחה!');
+            window.location.href = '/index.html'; 
+        } else {
+            alert('שגיאה בשמירה: ' + data.message);
+        }
+    } catch (error) {
+        console.error("Error saving predictions:", error);
+        alert('שגיאה בתקשורת עם השרת');
+    }
+}
+
+// הרצה
+fetchGroupDetails();
+checkUserSession();
+
+</script>
+</body>
+</html>

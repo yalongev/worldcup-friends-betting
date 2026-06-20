@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לובי טורניר המונדיאל</title>
+    <style>
+        body { font-family: system-ui, Arial; background: #eef2f3; padding: 20px; direction: rtl; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #1e3c72; text-align: center; margin-top: 0; font-size: 26px; }
+        p.subtitle { text-align: center; color: #666; margin-bottom: 25px; }
+        .section-title { font-weight: bold; color: #333; margin-bottom: 12px; font-size: 18px; border-bottom: 2px solid #1e3c72; padding-bottom: 5px; }
+        
+        /* כרטיסיית קבוצה משודרגת */
+        .group-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px; transition: transform 0.2s; }
+        .group-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+        .group-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 10px; }
+        .group-name { font-weight: bold; color: #1e3c72; font-size: 18px; }
+        
+        /* רשימת חברים קטנה */
+        .members-preview { font-size: 13px; color: #555; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #eaeaea; margin-bottom: 12px; }
+        .member-tag { display: inline-block; background: #e1f5fe; color: #0288d1; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 12px; font-weight: bold; }
+        
+        .action-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .btn { padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; text-align: center; border: none; }
+        .btn-bet { background: #28a745; color: white; }
+        .btn-bet:hover { background: #218838; }
+        .btn-lead { background: #17a2b8; color: white; }
+        .btn-lead:hover { background: #138496; }
+        
+        /* 🔥 עיצוב כפתור ניהול ותשלומים למנהל הקבוצה */
+        .btn-admin { background: #e67e22; color: white; }
+        .btn-admin:hover { background: #d35400; }
+        
+        .no-groups { text-align: center; color: #95a5a6; padding: 20px; font-style: italic; background: #fdfefe; border: 1px dashed #ccc; border-radius: 8px; }
+        .create-box { margin-top: 30px; background: #e8f4fd; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #bee5eb; }
+        .btn-create { background: #007bff; color: white; display: inline-block; margin-top: 10px; width: auto; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏆 קבוצות המונדיאל שלי 🏆</h1>
+    <p class="subtitle">לובי הטורנירים הרשמי שלך</p>
+
+    <div class="section-title">הקבוצות הפעילות שלי:</div>
+    <div id="groupsList"></div>
+
+    <div class="create-box">
+        <div style="font-weight: bold; color: #0c5460;">רוצה להוביל טורניר משלך? 🛠️</div>
+        <a href="/create-group.html" class="btn btn-create">➕ הקם קבוצה חדשה</a>
+    </div>
+</div>
+
+<script>
+    async function loadMyGroups() {
+        const groupsListContainer = document.getElementById('groupsList');
+        const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+        const groupIds = Object.keys(sessions);
+
+        if (groupIds.length === 0) {
+            groupsListContainer.innerHTML = `<div class="no-groups">עדיין לא הצטרפת לאף קבוצה.</div>`;
+            return;
+        }
+
+        for (const groupId of groupIds) {
+            const registeredName = sessions[groupId].userName;
+            const currentUserId = sessions[groupId].userId; // שליפת ה-userId הנוכחי של המשתמש בקבוצה זו
+            
+            // יצירת מבנה הכרטיסייה הראשוני
+            const card = document.createElement('div');
+            card.className = 'group-card';
+            card.id = `card-${groupId}`;
+            card.innerHTML = `
+                <div class="group-header">
+                    <span class="group-name" id="name-${groupId}">טוען קבוצה...</span>
+                    <span style="font-size: 12px; color: #888;">שלום, ${registeredName}</span>
+                </div>
+                <div class="members-preview" id="members-${groupId}">🏃‍♂️ טוען חברים בקבוצה...</div>
+                <div class="action-btns" id="actions-${groupId}">
+                    <a href="/bet.html?groupId=${groupId}" class="btn btn-bet">🎯 הימורים שלי</a>
+                    <a href="/leaderboard.html?groupId=${groupId}" class="btn btn-lead">📊 לוח תוצאות</a>
+                </div>
+            `;
+            groupsListContainer.appendChild(card);
+
+            // משיכת נתונים מורחבים מהשרת
+            fetch(`/api/groups/${groupId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.group) {
+                        const group = data.group;
+                        
+                        // 1. עדכון שם הקבוצה + הוספת שם המנהל בשורה מתחת או ליד
+                        document.getElementById(`name-${groupId}`).innerHTML = `
+                            ${group.group_name} 
+                            <div style="font-size: 12px; color: #e67e22; font-weight: normal; margin-top: 4px;">
+                                👑 מנהל: ${group.adminName || 'לא ידוע'}
+                            </div>
+                        `;
+                        
+                        // 2. בדיקה האם המשתמש המחובר הוא מנהל הקבוצה והזרקת כפתור הניהול במידת הצורך
+                        if (group.admin_id === currentUserId) {
+                            const actionsContainer = document.getElementById(`actions-${groupId}`);
+                            // מונע כפילות של כפתורים במקרה של טעינה חוזרת
+                            if (!document.getElementById(`admin-btn-${groupId}`)) {
+                                const adminBtn = document.createElement('a');
+                                adminBtn.id = `admin-btn-${groupId}`;
+                                adminBtn.href = `/admin.html?groupId=${groupId}`;
+                                adminBtn.className = 'btn btn-admin';
+                                adminBtn.innerText = '🛠️ ניהול ותשלומים';
+                                actionsContainer.appendChild(adminBtn);
+                            }
+                        }
+
+                        // 3. חילוץ כמות המשתתפים שביצעו הימורים
+                        const predictionsBlock = data.predictions || {};
+                        const userIdsInGroup = Object.keys(predictionsBlock);
+                        
+                        if(userIdsInGroup.length === 0) {
+                            document.getElementById(`members-${groupId}`).innerHTML = `🌱 אתה המשתתף הראשון בקבוצה! שלח את הלינק לחברים.`;
+                        } else {
+                            const lastUsersCount = userIdsInGroup.length;
+                            document.getElementById(`members-${groupId}`).innerHTML = `👥 בקבוצה זו יש כבר **${lastUsersCount}** משתתפים פעילים שהזינו ניחוש!`;
+                        }
+                    }
+                });
+        }
+    }
+
+    loadMyGroups();
+</script>
+</body>
+</html>

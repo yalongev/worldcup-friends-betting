@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול קבוצה ותשלומים</title>
+    <style>
+        body { font-family: system-ui, Arial; background: #eef2f3; padding: 20px; direction: rtl; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: #1e3c72; text-align: center; margin-top: 0; }
+        .group-title { text-align: center; color: #7f8c8d; font-size: 16px; margin-bottom: 20px; background: #f8f9fa; padding: 8px; border-radius: 6px; }
+        
+        .member-row { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; }
+        .member-name { font-weight: bold; font-size: 16px; }
+        
+        /* עיצוב כפתור הפעלה/כיבוי של התשלום */
+        .btn-toggle { padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; border: 2px solid; font-size: 13px; }
+        .status-paid { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        .status-unpaid { background: #fffde7; color: #f57f17; border-color: #fff59d; }
+        
+        .btn-back { display: inline-block; background: #6c757d; color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/index.html" class="btn-back">⬅️ חזרה ללובי</a>
+    <h1>🛠️ פאנל ניהול ותשלומים</h1>
+    <div id="groupSubTitle" class="group-title">טוען נתונים...</div>
+    <div class="admin-card" id="lockSection" style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+    <h3 style="margin-top: 0; color: #856404;">🔐 נעילת הימורים ותחילת הטורניר</h3>
+    <p style="font-size: 14px; margin-bottom: 15px;">ברגע שתנעל את ההימורים, אף משתמש לא יוכל לשנות או להזין ניחוש חדש. מה תרצה לעשות עם משתמשים שלא שילמו?</p>
+    
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: normal; cursor: pointer;">
+            <input type="radio" name="lockMode" value="spectator" checked style="width: auto; margin-left: 8px;"> 
+            <b>השאר אותם כצופים:</b> יופיעו בתחתית הלידרבורד עם 0 נקודות ואייקון 🚫
+        </label>
+        <label style="display: block; font-weight: normal; cursor: pointer;">
+            <input type="radio" name="lockMode" value="remove" style="width: auto; margin-left: 8px;"> 
+            <b>הסר אותם לחלוטין:</b> הם לא יופיעו בכלל בלוח התוצאות של החברים
+        </label>
+    </div>
+    
+    <button type="button" onclick="lockGroupBets()" style="background: #dc3545; color: white; width: auto; padding: 10px 20px;">🔒 נעל הימורים עכשיו</button>
+    </div>  
+
+    <h3>👥 סטטוס תשלומים בקבוצה:</h3>
+    <div id="membersAdminList">
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123";
+
+    async function loadAdminPanel() {
+        try {
+            const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}`);
+            if (!res.ok) return;
+
+            const data = await res.json();
+            const group = data.group;
+            document.getElementById('groupSubTitle').innerText = `ניהול קבוצת: ${group.group_name}`;
+
+            const listContainer = document.getElementById('membersAdminList');
+            listContainer.innerHTML = "";
+
+            const memberIds = Object.keys(group.members || {});
+
+            if (memberIds.length === 0) {
+                listContainer.innerHTML = `<p style="text-align:center; color:#999;">אין עדיין משתתפים בקבוצה זו.</p>`;
+                return;
+            }
+
+            memberIds.forEach(userId => {
+                const memberInfo = group.members[userId];
+                const userName = memberInfo.userName || "משתתף זמני";
+                
+                const row = document.createElement('div');
+                row.className = 'member-row';
+                
+                const isPaid = memberInfo.has_paid;
+                const btnClass = isPaid ? 'status-paid' : 'status-unpaid';
+                const btnText = isPaid ? '✅ שילם (לחץ לביטול)' : '💰 סמן כ"שילם"';
+
+                row.innerHTML = `
+                    <span class="member-name">${userName}</span>
+                    <button class="btn-toggle ${btnClass}" onclick="togglePayment('${userId}', ${isPaid})">${btnText}</button>
+                `;
+                listContainer.appendChild(row);
+            });
+
+        } catch (error) {
+            console.error("Error loading admin:", error);
+        }
+    }
+
+    // פונקציה שמעדכנת את השרת בלייב על שינוי סטטוס תשלום
+    async function togglePayment(userId, currentStatus) {
+        try {
+            const res = await fetch('/api/groups/toggle-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    groupId: CURRENT_GROUP_ID,
+                    userId: userId,
+                    hasPaid: !currentStatus // הופך את הסטטוס הנוכחי
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadAdminPanel(); // טעינה מחדש של הרשימה המעודכנת
+            }
+        } catch (error) {
+            alert('שגיאה בעדכון התשלום');
+        }
+    }
+
+    // שליפת ה-groupId מה-URL
+    // const urlParams = new URLSearchParams(window.location.search);
+    // const groupId = urlParams.get('groupId');
+
+    async function lockGroupBets() {
+        const lockMode = document.querySelector('input[name="lockMode"]:checked').value;
+        
+        if(!confirm("האם אתה בטוח שברצונך לנעול את ההימורים? לא ניתן יהיה לבטל פעולה זו!")) return;
+
+        try {
+            const res = await fetch(`/api/groups/${groupId}/lock`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lockMode })
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert("🔒 הטורניר ננעל! ההימורים סגורים רשמית.");
+                location.reload(); // רענון הדף כדי לעדכן את התצוגה
+            }
+        } catch (error) {
+            console.error("Error locking bets:", error);
+            alert("שגיאה בנעילת ההימורים");
+        }
+    }
+
+    // מומלץ להוסיף בטעינת הדף (ב-fetch של נתוני הקבוצה באדמין) בדיקה:
+    // אם group.betsLocked === true -> תעלים את כפתור הנעילה ותכתוב "הטורניר נעול 🔒"
+
+    loadAdminPanel();
+</script>
+</body>
+</html>
