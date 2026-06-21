@@ -19,6 +19,11 @@
       "name": "אבי כהן",
       "email": "",
       "created_at": "2026-06-18T11:26:57.147Z"
+    },
+    "user_wtu7wox": {
+      "name": "ילון מהעבודה",
+      "email": "",
+      "created_at": "2026-06-21T13:26:15.103Z"
     }
   },
   "groups": {
@@ -37,7 +42,9 @@
         "first_place": 10,
         "second_place": 3,
         "third_place": 1
-      }
+      },
+      "betsLocked": true,
+      "unpaidLockMode": "spectator"
     },
     "group_86253pr3k": {
       "group_name": "המשפחה המהמרת ⚽",
@@ -57,7 +64,7 @@
       }
     },
     "group_lfcw0qpbh": {
-      "group_name": "מהמונדיאל 2026",
+      "group_name": "מהמונדיאל 2027",
       "admin_id": "user_9atq76rjq",
       "paybox_link": "",
       "status": "voting_open",
@@ -68,7 +75,8 @@
         },
         "user_9atq76rjq": {
           "has_paid": true,
-          "total_score": 0
+          "total_score": 0,
+          "userName": "מהמר על MBPE"
         },
         "user_100172p8s": {
           "has_paid": false,
@@ -83,13 +91,83 @@
         "first_place": 10,
         "second_place": 3,
         "third_place": 1
+      },
+      "adminName": "מהמר על MBPE"
+    },
+    "group_2vlv69b": {
+      "group_name": "MACABI קבוצה",
+      "admin_id": "user_9atq76rjq",
+      "betsLocked": false,
+      "tournamentStage": "round_of_16",
+      "members": {
+        "user_9atq76rjq": {
+          "userName": "מהמר על MBPE",
+          "has_paid": true,
+          "registeredAt": "2026-06-20T19:23:51.357Z"
+        }
+      }
+    },
+    "group_54p8hv0": {
+      "group_name": "יום א קבוצה",
+      "admin_id": "user_wtu7wox",
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "round_of_16",
+      "members": {
+        "user_wtu7wox": {
+          "userName": "ילון מהעבודה",
+          "has_paid": true,
+          "registeredAt": "2026-06-21T13:26:15.103Z"
+        }
+      }
+    },
+    "group_vc45csl": {
+      "group_name": "מעולה 2 קבוצה",
+      "admin_id": "user_wtu7wox",
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "full",
+      "members": {
+        "user_wtu7wox": {
+          "userName": "ילון מהעבודה",
+          "has_paid": true,
+          "registeredAt": "2026-06-21T13:37:41.285Z"
+        }
+      }
+    },
+    "group_3irayxh": {
+      "group_name": "קבוצה 3",
+      "admin_id": "user_wtu7wox",
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "quarter",
+      "members": {
+        "user_wtu7wox": {
+          "userName": "ילון מהעבודה",
+          "has_paid": true,
+          "registeredAt": "2026-06-21T14:15:11.467Z"
+        }
+      }
+    },
+    "group_nsgxsa5": {
+      "group_name": "קבוצה 4",
+      "admin_id": "user_wtu7wox",
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "full",
+      "members": {
+        "user_wtu7wox": {
+          "userName": "ילון מהעבודה",
+          "has_paid": true,
+          "registeredAt": "2026-06-21T14:26:28.563Z"
+        }
       }
     }
   },
   "predictions": {
     "group_lfcw0qpbh": {
       "user_9atq76rjq": {
-        "updated_at": "2026-06-18T12:07:30.669Z",
+        "updated_at": "2026-06-20T18:01:27.817Z",
         "teams": {
           "first": "France",
           "second": "Brazil",

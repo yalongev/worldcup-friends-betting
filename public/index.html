@@ -21,12 +21,19 @@
         .members-preview { font-size: 13px; color: #555; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #eaeaea; margin-bottom: 12px; }
         .member-tag { display: inline-block; background: #e1f5fe; color: #0288d1; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 12px; font-weight: bold; }
         
-        .action-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-        .btn { padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; cursor: pointer; text-align: center; border: none; }
+        .action-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; align-items: center; }
+        .action-btns::-webkit-scrollbar { height: 6px; }
+        .action-btns::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+        .btn { padding: 8px 12px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 13px; cursor: pointer; text-align: center; border: none; white-space: nowrap; min-width: 0; }
         .btn-bet { background: #28a745; color: white; }
         .btn-bet:hover { background: #218838; }
         .btn-lead { background: #17a2b8; color: white; }
         .btn-lead:hover { background: #138496; }
+        .btn-share { background: #6f42c1; color: white; }
+        .btn-share:hover { background: #5936a3; }
+        .copy-toast { display: none; background: #d1e7dd; color: #0f5132; padding: 8px 12px; border-radius: 6px; border: 1px solid #badbcc; margin-bottom: 10px; font-size: 13px; text-align: center; }
+        .copy-toast.show { display: block; animation: fadeDown 0.2s ease; }
+        @keyframes fadeDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
         
         /* 🔥 עיצוב כפתור ניהול ותשלומים למנהל הקבוצה */
         .btn-admin { background: #e67e22; color: white; }
@@ -42,6 +49,7 @@
 <div class="container">
     <h1>🏆 קבוצות המונדיאל שלי 🏆</h1>
     <p class="subtitle">לובי הטורנירים הרשמי שלך</p>
+    <div id="globalToast" class="copy-toast"></div>
 
     <div class="section-title">הקבוצות הפעילות שלי:</div>
     <div id="groupsList"></div>
@@ -78,8 +86,9 @@
                 </div>
                 <div class="members-preview" id="members-${groupId}">🏃‍♂️ טוען חברים בקבוצה...</div>
                 <div class="action-btns" id="actions-${groupId}">
-                    <a href="/bet.html?groupId=${groupId}" class="btn btn-bet">🎯 הימורים שלי</a>
-                    <a href="/leaderboard.html?groupId=${groupId}" class="btn btn-lead">📊 לוח תוצאות</a>
+                    <a href="/bet.html?groupId=${groupId}" class="btn btn-bet">הימורים שלי</a>
+                    <a href="/leaderboard.html?groupId=${groupId}" class="btn btn-lead">לוח תוצאות</a>
+                    <button type="button" id="share-btn-${groupId}" class="btn btn-share">העתק לינק הזמנה</button>
                 </div>
             `;
             groupsListContainer.appendChild(card);
@@ -108,16 +117,46 @@
                                 adminBtn.id = `admin-btn-${groupId}`;
                                 adminBtn.href = `/admin.html?groupId=${groupId}`;
                                 adminBtn.className = 'btn btn-admin';
-                                adminBtn.innerText = '🛠️ ניהול ותשלומים';
+                                adminBtn.innerText = 'ניהול ותשלומים';
                                 actionsContainer.appendChild(adminBtn);
                             }
                         }
 
-                        // 3. חילוץ כמות המשתתפים שביצעו הימורים
+                        // 3. מכלול לחצן שיתוף בעזרת העתקת לינק, רק אם ההימורים עדיין פתוחים
+                        const shareBtn = document.getElementById(`share-btn-${groupId}`);
+                        if (shareBtn) {
+                            if (group.betsLocked) {
+                                shareBtn.disabled = true;
+                                shareBtn.innerText = 'הימורים נעולים';
+                                shareBtn.style.cursor = 'not-allowed';
+                                shareBtn.style.opacity = '0.6';
+                            } else {
+                                shareBtn.addEventListener('click', async () => {
+                                    const inviteUrl = `${window.location.origin}/bet.html?groupId=${groupId}`;
+                                    const textToCopy = `הצטרפו לקבוצה שלי ב-WorldCup Friends Betting:\n${inviteUrl}`;
+                                    try {
+                                        await navigator.clipboard.writeText(textToCopy);
+
+                                        const toast = document.getElementById('globalToast');
+                                        if (toast) {
+                                            toast.innerText = `הועתק לקליפבורד: קישור קבוצה "${group.group_name}" לשיתוף`;
+                                            toast.classList.add('show');
+                                            setTimeout(() => toast.classList.remove('show'), 2000);
+                                        }
+
+                                        shareBtn.innerText = 'הועתק ללוח!';
+                                        setTimeout(() => shareBtn.innerText = 'העתק לינק הזמנה', 2000);
+                                    } catch (err) {
+                                        alert('לא ניתן להעתיק ללוח. אנא העתק ידנית: ' + inviteUrl);
+                                    }
+                                });
+                            }
+                        }
+
+                        // 4. חילוץ כמות המשתתפים שביצעו הימורים
                         const predictionsBlock = data.predictions || {};
                         const userIdsInGroup = Object.keys(predictionsBlock);
-                        
-                        if(userIdsInGroup.length === 0) {
+                        if (userIdsInGroup.length === 0) {
                             document.getElementById(`members-${groupId}`).innerHTML = `🌱 אתה המשתתף הראשון בקבוצה! שלח את הלינק לחברים.`;
                         } else {
                             const lastUsersCount = userIdsInGroup.length;

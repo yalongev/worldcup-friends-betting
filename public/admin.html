@@ -27,6 +27,14 @@
     <a href="/index.html" class="btn-back">⬅️ חזרה ללובי</a>
     <h1>🛠️ פאנל ניהול ותשלומים</h1>
     <div id="groupSubTitle" class="group-title">טוען נתונים...</div>
+    <div class="card" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <label style="font-weight: bold; display: block; margin-bottom: 8px;">🛠️ עריכת שם הקבוצה:</label>
+        <div style="display: flex; gap: 8px;">
+            <input type="text" id="groupNameInput" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+            <button onclick="updateGroupName()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">עדכן שם</button>
+        </div>
+        <div id="groupNameStatus" style="font-size: 13px; margin-top: 5px;"></div>
+    </div>
     <div class="admin-card" id="lockSection" style="background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
     <h3 style="margin-top: 0; color: #856404;">🔐 נעילת הימורים ותחילת הטורניר</h3>
     <p style="font-size: 14px; margin-bottom: 15px;">ברגע שתנעל את ההימורים, אף משתמש לא יוכל לשנות או להזין ניחוש חדש. מה תרצה לעשות עם משתמשים שלא שילמו?</p>
@@ -54,100 +62,140 @@
     const urlParams = new URLSearchParams(window.location.search);
     const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123";
 
-    async function loadAdminPanel() {
-        try {
-            const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}`);
-            if (!res.ok) return;
+async function loadAdminPanel() {
+    try {
+        const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}`);
+        if (!res.ok) return;
 
-            const data = await res.json();
-            const group = data.group;
-            document.getElementById('groupSubTitle').innerText = `ניהול קבוצת: ${group.group_name}`;
-
-            const listContainer = document.getElementById('membersAdminList');
-            listContainer.innerHTML = "";
-
-            const memberIds = Object.keys(group.members || {});
-
-            if (memberIds.length === 0) {
-                listContainer.innerHTML = `<p style="text-align:center; color:#999;">אין עדיין משתתפים בקבוצה זו.</p>`;
-                return;
-            }
-
-            memberIds.forEach(userId => {
-                const memberInfo = group.members[userId];
-                const userName = memberInfo.userName || "משתתף זמני";
-                
-                const row = document.createElement('div');
-                row.className = 'member-row';
-                
-                const isPaid = memberInfo.has_paid;
-                const btnClass = isPaid ? 'status-paid' : 'status-unpaid';
-                const btnText = isPaid ? '✅ שילם (לחץ לביטול)' : '💰 סמן כ"שילם"';
-
-                row.innerHTML = `
-                    <span class="member-name">${userName}</span>
-                    <button class="btn-toggle ${btnClass}" onclick="togglePayment('${userId}', ${isPaid})">${btnText}</button>
-                `;
-                listContainer.appendChild(row);
-            });
-
-        } catch (error) {
-            console.error("Error loading admin:", error);
-        }
-    }
-
-    // פונקציה שמעדכנת את השרת בלייב על שינוי סטטוס תשלום
-    async function togglePayment(userId, currentStatus) {
-        try {
-            const res = await fetch('/api/groups/toggle-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    groupId: CURRENT_GROUP_ID,
-                    userId: userId,
-                    hasPaid: !currentStatus // הופך את הסטטוס הנוכחי
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                loadAdminPanel(); // טעינה מחדש של הרשימה המעודכנת
-            }
-        } catch (error) {
-            alert('שגיאה בעדכון התשלום');
-        }
-    }
-
-    // שליפת ה-groupId מה-URL
-    // const urlParams = new URLSearchParams(window.location.search);
-    // const groupId = urlParams.get('groupId');
-
-    async function lockGroupBets() {
-        const lockMode = document.querySelector('input[name="lockMode"]:checked').value;
+        const data = await res.json();
+        const group = data.group;
         
-        if(!confirm("האם אתה בטוח שברצונך לנעול את ההימורים? לא ניתן יהיה לבטל פעולה זו!")) return;
+        // 1. עדכון כותרת העמוד הקיימת
+        document.getElementById('groupSubTitle').innerText = `ניהול קבוצת: ${group.group_name}`;
 
-        try {
-            const res = await fetch(`/api/groups/${groupId}/lock`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lockMode })
-            });
-            const data = await res.json();
-            
-            if(data.success) {
-                alert("🔒 הטורניר ננעל! ההימורים סגורים רשמית.");
-                location.reload(); // רענון הדף כדי לעדכן את התצוגה
-            }
-        } catch (error) {
-            console.error("Error locking bets:", error);
-            alert("שגיאה בנעילת ההימורים");
+        // 🔥 שורת המחץ: מציבים את שם הקבוצה הנוכחי בתוך תיבת האינפוט של העריכה
+        if (document.getElementById('groupNameInput')) {
+            document.getElementById('groupNameInput').value = group.group_name;
         }
-    }
 
+        // 2. המשך הלוגיקה הרגילה שלך לרנדור רשימת החברים...
+        const listContainer = document.getElementById('membersAdminList');
+        listContainer.innerHTML = "";
+
+        const memberIds = Object.keys(group.members || {});
+
+        if (memberIds.length === 0) {
+            listContainer.innerHTML = `<p style="text-align:center; color:#999;">אין עדיין משתתפים בקבוצה זו.</p>`;
+            return;
+        }
+
+        memberIds.forEach(userId => {
+            const memberInfo = group.members[userId];
+            const userName = memberInfo.userName || "משתתף זמני";
+            
+            const row = document.createElement('div');
+            row.className = 'member-row';
+            
+            const isPaid = memberInfo.has_paid;
+            const btnClass = isPaid ? 'status-paid' : 'status-unpaid';
+            const btnText = isPaid ? '✅ שילם (לחץ לביטול)' : '💰 סמן כ"שילם"';
+
+            row.innerHTML = `
+                <span class="member-name">${userName}</span>
+                <button class="btn-toggle ${btnClass}" onclick="togglePayment('${userId}', ${isPaid})">${btnText}</button>
+            `;
+            listContainer.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Error loading admin:", error);
+    }
+}
+
+// פונקציה שמעדכנת את השרת בלייב על שינוי סטטוס תשלום
+async function togglePayment(userId, currentStatus) {
+    try {
+        const res = await fetch('/api/groups/toggle-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                groupId: CURRENT_GROUP_ID,
+                userId: userId,
+                hasPaid: !currentStatus // הופך את הסטטוס הנוכחי
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            loadAdminPanel(); // טעינה מחדש של הרשימה המעודכנת
+        }
+    } catch (error) {
+        alert('שגיאה בעדכון התשלום');
+    }
+}
+
+// שליפת ה-groupId מה-URL
+// const urlParams = new URLSearchParams(window.location.search);
+// const groupId = urlParams.get('groupId');
+
+async function lockGroupBets() {
+    const lockMode = document.querySelector('input[name="lockMode"]:checked').value;
+    
+    if(!confirm("האם אתה בטוח שברצונך לנעול את ההימורים? לא ניתן יהיה לבטל פעולה זו!")) return;
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/lock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lockMode })
+        });
+        const data = await res.json();
+        
+        if(data.success) {
+            alert("🔒 הטורניר ננעל! ההימורים סגורים רשמית.");
+            location.reload(); // רענון הדף כדי לעדכן את התצוגה
+        }
+    } catch (error) {
+        console.error("Error locking bets:", error);
+        alert("שגיאה בנעילת ההימורים");
+    }
+}
+
+async function updateGroupName() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('groupId');
+    const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+    const currentUserId = sessions[groupId]?.userId;
+
+    const newGroupName = document.getElementById('groupNameInput').value;
+    const statusDiv = document.getElementById('groupNameStatus');
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/update-name`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newGroupName, currentUserId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusDiv.style.color = "green";
+            statusDiv.innerText = "🏆 שם הקבוצה עודכן בהצלחה!";
+            // עדכון כותרת העמוד הראשית במידת הצורך
+            if(document.getElementById('groupTitle')) {
+                document.getElementById('groupTitle').innerText = data.group_name;
+            }
+        } else {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = data.message;
+        }
+    } catch (e) {
+        statusDiv.style.color = "red";
+        statusDiv.innerText = "שגיאה בתקשורת עם השרת";
+    }
+}
     // מומלץ להוסיף בטעינת הדף (ב-fetch של נתוני הקבוצה באדמין) בדיקה:
     // אם group.betsLocked === true -> תעלים את כפתור הנעילה ותכתוב "הטורניר נעול 🔒"
+loadAdminPanel();
 
-    loadAdminPanel();
 </script>
 </body>
 </html>

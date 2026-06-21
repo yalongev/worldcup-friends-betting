@@ -36,7 +36,19 @@
     </div>
 
     <div id="bettingScreen">
+        <div style="margin-bottom: 15px; display: flex; justify-content: flex-start;">
+            <a href="/index.html" style="padding: 8px 15px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">⬅️ ביטול וחזרה ללובי</a>
+        </div>
         <div id="welcomeUser" class="welcome-msg"></div>
+<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-sizing: border-box; width: 100%; direction: rtl;">
+    <label style="font-weight: bold; font-size: 15px; display: block; margin-bottom: 10px; color: #333; text-align: right;">✏️ הכינוי שלך בקבוצה זו:</label>
+    
+    <input type="text" id="userNicknameInput" style="width: 100%; height: 42px; padding: 0 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background: white; color: #333; display: block; margin-bottom: 12px; text-align: right;">
+    
+    <button onclick="updateUserNickname()" style="background: #28a745; color: white; border: none; width: 100%; height: 42px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; display: block; box-sizing: border-box;">שמור שם</button>
+    
+    <div id="nicknameStatus" style="font-size: 13px; margin-top: 8px; font-weight: bold; text-align: right;"></div>
+</div>
         <h2>🏆 הימורי המונדיאל שלי 🏆</h2>
         <a id="payboxLinkBtn" href="#" target="_blank" class="link-btn">💰 לחץ כאן לתשלום ב-PayBox</a>
         
@@ -73,7 +85,7 @@
 
 <script>
   
-  const urlParams = new URLSearchParams(window.location.search);
+const urlParams = new URLSearchParams(window.location.search);
 const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123"; 
 
 let CURRENT_USER_ID = null;
@@ -143,8 +155,15 @@ function checkUserSession() {
     if (sessions[CURRENT_GROUP_ID]) {
         CURRENT_USER_ID = sessions[CURRENT_GROUP_ID].userId;
         CURRENT_USER_NAME = sessions[CURRENT_GROUP_ID].userName;
+        
+        // 🔥 שורת המחץ: מציבים את השם הקיים בתוך האינפוט של שינוי השם
+        if (document.getElementById('userNicknameInput')) {
+            document.getElementById('userNicknameInput').value = CURRENT_USER_NAME;
+        }
+
         showBettingScreen();
-        // 🔥 פונקציה חדשה: אחרי שהמסך מוצג, נטען את ההימורים הקיימים של המשתמש מהשרת
+        
+        // אחרי שהמסך מוצג, נטען את ההימורים הקיימים של המשתמש מהשרת
         loadSavedPredictions();
     } else {
         document.getElementById('registerScreen').style.display = 'block';
@@ -239,6 +258,66 @@ async function savePredictions() {
         alert('שגיאה בתקשורת עם השרת');
     }
 }
+
+async function updateUserNickname() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('groupId');
+    const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+    
+    if (!sessions[groupId]) return;
+    
+    const userId = sessions[groupId].userId;
+    const newUserName = document.getElementById('userNicknameInput').value;
+    const statusDiv = document.getElementById('nicknameStatus');
+
+    try {
+        const res = await fetch(`/api/groups/${groupId}/update-username`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, newUserName })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            // 🔥 עדכון ה-localStorage המקומי כדי שהלובי (index.html) יציג את השם החדש מיד!
+            sessions[groupId].userName = data.userName;
+            localStorage.setItem('worldcup_sessions', JSON.stringify(sessions));
+
+            statusDiv.style.color = "green";
+            statusDiv.innerText = "👤 שמך עודכן בהצלחה במערכת!";
+
+            window.location.reload();
+        } else {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = data.message;
+        }
+    } catch (e) {
+        statusDiv.style.color = "red";
+        statusDiv.innerText = "שגיאה בתקשורת";
+    }
+}
+
+let isFormChanged = false;
+
+// מאזין לכל שינוי בטופס
+document.addEventListener('change', function(e) {
+    if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') {
+        isFormChanged = true;
+    }
+});
+
+// אם המשתמש מנסה לסגור את הטאב או לעזוב ויש שינויים שלא נשמרו
+window.addEventListener('beforeunload', function (e) {
+    if (isFormChanged) {
+        // ביטול הפעולה יקפיץ את הודעת האזהרה הסטנדרטית של הדפדפן
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+// ברגע שהוא לוחץ על כפתור השמירה האמיתי שלך, נכבה את ההתרעה
+// (תוסיף את השורה הזו בתוך פונקציית ה-saveBets שלך, רגע לפני ה-fetch לשרת)
+isFormChanged = false;
 
 // הרצה
 fetchGroupDetails();

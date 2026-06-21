@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard - מנהל מערכת</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: system-ui, Arial; background: #f0f2f5; margin: 0; padding: 20px; direction: rtl; }
+        .container { max-width: 1000px; margin: auto; display: none; } /* מוסתר כברירת מחדל */
+        h1 { color: #1e3c72; border-bottom: 3px solid #1e3c72; padding-bottom: 10px; }
+        
+        /* כרטיסיות סיכום */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .kpi-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #007bff; }
+        .kpi-card.purple { border-top-color: #6f42c1; }
+        .kpi-card.green { border-top-color: #28a745; }
+        .kpi-card.orange { border-top-color: #fd7e14; }
+        .kpi-val { font-size: 28px; font-weight: bold; color: #333; margin-top: 5px; }
+        .kpi-title { font-size: 14px; color: #666; }
+
+        /* אזור הגרפים */
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .chart-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .chart-title { font-weight: bold; margin-bottom: 15px; color: #444; font-size: 16px; }
+
+        /* מסך נעילת סיסמה */
+        #authScreen { position: fixed; top:0; left:0; width:100%; height:100%; background: #1e3c72; display: flex; justify-content: center; align-items: center; z-index: 999; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; max-width: 350px; width: 90%; }
+        .login-box h2 { margin-top: 0; color: #1e3c72; }
+        input[type="password"] { width: 100%; padding: 10px; margin: 15px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: center; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        #errorMsg { color: red; font-size: 14px; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="authScreen">
+    <div class="login-box">
+        <h2>🛠️ כניסת מנהל על</h2>
+        <p>אנא הזן סיסמת Super Admin כדי לצפות בנתוני המערכת:</p>
+        <input type="password" id="adminPass" placeholder="הזן סיסמה כאן...">
+        <button onclick="tryLogin()">התחבר למערכת</button>
+        <div id="errorMsg"></div>
+    </div>
+</div>
+
+<div class="container" id="dashboardContainer">
+    <h1>📊 לוח בקרת מנהל מערכת - Super Admin</h1>
+    
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-title">👥 סה"כ משתמשים ייחודיים</div>
+            <div id="kpiUsers" class="kpi-val">0</div>
+        </div>
+        <div class="kpi-card purple">
+            <div class="kpi-title">🏆 סה"כ קבוצות שנפתחו</div>
+            <div id="kpiGroups" class="kpi-val">0</div>
+        </div>
+        <div class="kpi-card green">
+            <div class="kpi-title">🏃‍♂️ ממוצע חברים בקבוצה</div>
+            <div id="kpiAvg" class="kpi-val">0</div>
+        </div>
+        <div class="kpi-card orange">
+            <div class="kpi-title">🔄 משתמשים ביותר מקבוצה אחת</div>
+            <div id="kpiMultiple" class="kpi-val">0%</div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="chart-box">
+            <div class="chart-title">📅 קבוצות חדשות שנוצרו (לפי ימי השבוע)</div>
+            <canvas id="daysChart"></canvas>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-title">🍕 פילוח קבוצות לפי סוגי התמודדות</div>
+            <canvas id="typesChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    let adminPassword = "";
+
+    async function tryLogin() {
+        const passwordInput = document.getElementById('adminPass').value;
+        const errorDiv = document.getElementById('errorMsg');
+
+        try {
+            const res = await fetch('/api/super-admin/stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: passwordInput })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                adminPassword = passwordInput; // שמירת הסיסמה המוצלחת
+                document.getElementById('authScreen').style.display = 'none'; // העלמת מסך הנעילה
+                document.getElementById('dashboardContainer').style.display = 'block'; // הצגת הדשבורד
+                
+                renderDashboardData(data);
+            } else {
+                errorDiv.innerText = data.message || "שגיאה בכניסה";
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            errorDiv.innerText = "שגיאה בתקשורת עם השרת";
+        }
+    }
+
+    function renderDashboardData(data) {
+        // 1. עדכון כרטיסיות הנתונים
+        document.getElementById('kpiUsers').innerText = data.summary.totalUniqueUsers;
+        document.getElementById('kpiGroups').innerText = data.summary.totalGroups;
+        document.getElementById('kpiAvg').innerText = data.summary.avgMembersPerGroup;
+        document.getElementById('kpiMultiple').innerText = data.summary.percentageMultiple + "%";
+
+        // 2. בניית גרף עמודות (קצב יצירת קבוצות)
+        const daysCtx = document.getElementById('daysChart').getContext('2d');
+        new Chart(daysCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data.charts.groupCreationDays),
+                datasets: [{
+                    label: 'קבוצות שנוצרו',
+                    data: Object.values(data.charts.groupCreationDays),
+                    backgroundColor: '#1e3c72',
+                    borderRadius: 4
+                }]
+            },
+            options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+
+        // 3. בניית גרף עוגה (סוגי טורנירים)
+        const typesCtx = document.getElementById('typesChart').getContext('2d');
+        new Chart(typesCtx, {
+            type: 'pie',
+            data: {
+                labels: ['משלב הבתים', 'משמינית הגמר', 'מרבע הגמר'],
+                datasets: [{
+                    data: [
+                        data.charts.tournamentTypes.full,
+                        data.charts.tournamentTypes.round_of_16,
+                        data.charts.tournamentTypes.quarter
+                    ],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                }]
+            },
+            options: { responsive: true }
+        });
+    }
+</script>
+</body>
+</html>
