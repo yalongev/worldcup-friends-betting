@@ -19,6 +19,24 @@
         .status-unpaid { background: #fffde7; color: #f57f17; border-color: #fff59d; }
         
         .btn-back { display: inline-block; background: #6c757d; color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
+        .payment-summary-box { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+        .summary-item { flex: 1 1 140px; background: #f8f9fa; border: 1px solid #dbeafe; border-radius: 12px; padding: 14px 12px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .summary-label { font-size: 13px; color: #475569; }
+        .summary-value { font-size: 20px; font-weight: 700; color: #1e3c72; margin-top: 8px; }
+        #entryFeeEditSection,
+        #payboxLinkEditSection {
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 180ms ease, transform 180ms ease;
+            will-change: opacity, transform;
+            display: none;
+        }
+        #entryFeeEditSection.visible,
+        #payboxLinkEditSection.visible {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
         /* subtle animations for admin card show/hide */
         #groupNameCard, #groupNameEditSection {
             opacity: 0;
@@ -72,6 +90,48 @@
     </div>  
 
     <h3>👥 סטטוס תשלומים בקבוצה:</h3>
+    <div class="payment-summary-box">
+        <div class="summary-item">
+            <div class="summary-label">💰 עלות לכל משתתף</div>
+            <div id="adminEntryFeeVal" class="summary-value">0 ₪</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">✅ סה"כ שולם</div>
+            <div id="adminPaidAmountVal" class="summary-value">0 ₪</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">⚠️ סה"כ לא שולם</div>
+            <div id="adminUnpaidAmountVal" class="summary-value">0 ₪</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">🔗 קישור PayBox</div>
+            <div id="adminPayboxLinkVal" class="summary-value" style="font-size: 14px; line-height: 1.3; word-break: break-all;">לא הוגדר</div>
+        </div>
+    </div>
+    <div id="adminEntryFeeActions" style="margin-bottom: 18px; text-align: center;">
+        <button id="entryFeeEditBtn" type="button" onclick="enterEntryFeeEditMode()" style="background: #1e88e5; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">עדכן עלות כניסה</button>
+        <div id="adminEntryFeeHelp" style="margin-top: 8px; color: #555; font-size: 14px;"></div>
+    </div>
+    <div id="entryFeeEditSection" style="display: none; background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 18px; border: 1px solid #e0e0e0; box-sizing: border-box;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center;">
+            <input id="entryFeeInput" type="number" placeholder="עלות ב₪" style="flex: 1; min-width: 140px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+            <button type="button" onclick="saveEntryFee()" style="background: #28a745; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">שמור</button>
+            <button type="button" onclick="cancelEntryFeeEdit()" style="background: #6c757d; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">בטל</button>
+        </div>
+        <div id="entryFeeStatus" style="margin-top: 8px; color: #555; font-size: 14px; text-align: center;"></div>
+    </div>
+    <div id="adminPayboxActions" style="margin-bottom: 18px; text-align: center;">
+        <button id="payboxLinkEditBtn" type="button" onclick="enterPayboxLinkEditMode()" style="background: #6f42c1; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">עדכן קישור PayBox</button>
+        <div id="adminPayboxHelp" style="margin-top: 8px; color: #555; font-size: 14px;"></div>
+    </div>
+    <div id="payboxLinkEditSection" style="display: none; background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 18px; border: 1px solid #e0e0e0; box-sizing: border-box;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: center;">
+            <input id="payboxLinkInput" type="url" placeholder="https://..." style="flex: 1; min-width: 140px; padding: 10px; border: 1px solid #ccc; border-radius: 6px;">
+            <button type="button" onclick="savePayboxLink()" style="background: #6f42c1; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">שמור</button>
+            <button type="button" onclick="cancelPayboxLinkEdit()" style="background: #6c757d; color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">בטל</button>
+        </div>
+        <div id="payboxLinkStatus" style="margin-top: 8px; color: #555; font-size: 14px; text-align: center;"></div>
+    </div>
     <div id="membersAdminList">
     </div>
 </div>
@@ -110,21 +170,45 @@ async function loadAdminPanel() {
         const listContainer = document.getElementById('membersAdminList');
         listContainer.innerHTML = "";
 
+        const entryFee = group.entry_fee !== undefined && group.entry_fee !== null ? Number(group.entry_fee) : null;
         const memberIds = Object.keys(group.members || {});
+        let paidCount = 0;
+        let unpaidCount = 0;
 
         if (memberIds.length === 0) {
             listContainer.innerHTML = `<p style="text-align:center; color:#999;">אין עדיין משתתפים בקבוצה זו.</p>`;
+            document.getElementById('adminEntryFeeVal').innerText = entryFee !== null ? `${entryFee} ₪` : 'לא הוגדר';
+            document.getElementById('adminPaidAmountVal').innerText = entryFee !== null ? `0 ₪` : 'לא הוגדר';
+            document.getElementById('adminUnpaidAmountVal').innerText = entryFee !== null ? `0 ₪` : 'לא הוגדר';
+            document.getElementById('adminPayboxLinkVal').innerText = group.paybox_link ? group.paybox_link : 'לא הוגדר';
+            document.getElementById('adminEntryFeeActions').style.display = 'block';
+            document.getElementById('adminPayboxActions').style.display = 'block';
+            if (entryFee === null) {
+                document.getElementById('adminEntryFeeHelp').innerText = 'קבוצות ישנות לא שמרו את עלות ההשתתפות. עדכן כאן כדי לראות את הסכומים הנכונים.';
+            } else {
+                document.getElementById('adminEntryFeeHelp').innerText = '';
+            }
+            if (!group.paybox_link) {
+                document.getElementById('adminPayboxHelp').innerText = 'הוסף כאן קישור PayBox כדי לאפשר תשלום מהמשתתפים בדף ההימורים.';
+            } else {
+                document.getElementById('adminPayboxHelp').innerText = '';
+            }
             return;
         }
 
         memberIds.forEach(userId => {
             const memberInfo = group.members[userId];
             const userName = memberInfo.userName || "משתתף זמני";
+            const isPaid = memberInfo.has_paid;
+            if (isPaid) {
+                paidCount++;
+            } else {
+                unpaidCount++;
+            }
             
             const row = document.createElement('div');
             row.className = 'member-row';
             
-            const isPaid = memberInfo.has_paid;
             const btnClass = isPaid ? 'status-paid' : 'status-unpaid';
             const btnText = isPaid ? '✅ שילם (לחץ לביטול)' : '💰 סמן כ"שילם"';
 
@@ -134,6 +218,25 @@ async function loadAdminPanel() {
             `;
             listContainer.appendChild(row);
         });
+
+        const paidAmount = entryFee !== null ? paidCount * entryFee : null;
+        const unpaidAmount = entryFee !== null ? unpaidCount * entryFee : null;
+        document.getElementById('adminEntryFeeVal').innerText = entryFee !== null ? `${entryFee} ₪` : 'לא הוגדר';
+        document.getElementById('adminPaidAmountVal').innerText = entryFee !== null ? `${paidAmount} ₪` : 'לא הוגדר';
+        document.getElementById('adminUnpaidAmountVal').innerText = entryFee !== null ? `${unpaidAmount} ₪` : 'לא הוגדר';
+        document.getElementById('adminPayboxLinkVal').innerText = group.paybox_link ? group.paybox_link : 'לא הוגדר';
+        document.getElementById('adminEntryFeeActions').style.display = 'block';
+        document.getElementById('adminPayboxActions').style.display = 'block';
+        if (entryFee === null) {
+            document.getElementById('adminEntryFeeHelp').innerText = 'קבוצות ישנות לא שמרו את עלות ההשתתפות. עדכן כאן כדי לראות את הסכומים הנכונים.';
+        } else {
+            document.getElementById('adminEntryFeeHelp').innerText = '';
+        }
+        if (!group.paybox_link) {
+            document.getElementById('adminPayboxHelp').innerText = 'הוסף כאן קישור PayBox כדי לאפשר תשלום מהמשתתפים בדף ההימורים.';
+        } else {
+            document.getElementById('adminPayboxHelp').innerText = '';
+        }
 
     } catch (error) {
         console.error("Error loading admin:", error);
@@ -161,6 +264,139 @@ async function togglePayment(userId, currentStatus) {
     }
 }
 
+function enterEntryFeeEditMode() {
+    const editSection = document.getElementById('entryFeeEditSection');
+    const editBtn = document.getElementById('entryFeeEditBtn');
+    const currentText = document.getElementById('adminEntryFeeVal').innerText;
+    const currentValue = currentText !== 'לא הוגדר' ? Number(currentText.replace(/[^0-9]/g, '')) : '';
+
+    if (editSection) {
+        editSection.style.display = 'block';
+        void editSection.offsetHeight;
+        editSection.classList.add('visible');
+    }
+    if (editBtn) {
+        editBtn.style.display = 'none';
+    }
+    if (document.getElementById('entryFeeInput')) {
+        document.getElementById('entryFeeInput').value = currentValue;
+    }
+    document.getElementById('entryFeeStatus').innerText = '';
+}
+
+function cancelEntryFeeEdit() {
+    const editSection = document.getElementById('entryFeeEditSection');
+    const editBtn = document.getElementById('entryFeeEditBtn');
+    if (editSection) {
+        editSection.classList.remove('visible');
+        setTimeout(() => {
+            editSection.style.display = 'none';
+        }, 200);
+    }
+    if (editBtn) {
+        editBtn.style.display = 'inline-flex';
+    }
+    document.getElementById('entryFeeStatus').innerText = '';
+}
+
+function enterPayboxLinkEditMode() {
+    const editSection = document.getElementById('payboxLinkEditSection');
+    const editBtn = document.getElementById('payboxLinkEditBtn');
+    const currentUrl = document.getElementById('adminPayboxLinkVal').innerText;
+    const currentValue = currentUrl !== 'לא הוגדר' ? currentUrl : '';
+
+    if (editSection) {
+        editSection.style.display = 'block';
+        void editSection.offsetHeight;
+        editSection.classList.add('visible');
+    }
+    if (editBtn) {
+        editBtn.style.display = 'none';
+    }
+    if (document.getElementById('payboxLinkInput')) {
+        document.getElementById('payboxLinkInput').value = currentValue;
+    }
+    document.getElementById('payboxLinkStatus').innerText = '';
+}
+
+function cancelPayboxLinkEdit() {
+    const editSection = document.getElementById('payboxLinkEditSection');
+    const editBtn = document.getElementById('payboxLinkEditBtn');
+    if (editSection) {
+        editSection.classList.remove('visible');
+        setTimeout(() => {
+            editSection.style.display = 'none';
+        }, 200);
+    }
+    if (editBtn) {
+        editBtn.style.display = 'inline-flex';
+    }
+    document.getElementById('payboxLinkStatus').innerText = '';
+}
+
+async function savePayboxLink() {
+    const link = document.getElementById('payboxLinkInput').value.trim();
+    const statusDiv = document.getElementById('payboxLinkStatus');
+    if (link !== '' && !/^https?:\/\//.test(link)) {
+        statusDiv.style.color = '#d32f2f';
+        statusDiv.innerText = 'הקישור חייב להתחיל ב-https:// או http://';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/update-paybox-link`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payboxLink: link })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusDiv.style.color = '#28a745';
+            statusDiv.innerText = 'קוד ה-PayBox עודכן בהצלחה.';
+            loadAdminPanel();
+            cancelPayboxLinkEdit();
+        } else {
+            statusDiv.style.color = '#d32f2f';
+            statusDiv.innerText = data.message || 'שגיאה בעדכון קישור PayBox.';
+        }
+    } catch (error) {
+        console.error('Error updating PayBox link:', error);
+        statusDiv.style.color = '#d32f2f';
+        statusDiv.innerText = 'שגיאה בעדכון קישור PayBox';
+    }
+}
+
+async function saveEntryFee() {
+    const amount = Number(document.getElementById('entryFeeInput').value);
+    const statusDiv = document.getElementById('entryFeeStatus');
+    if (isNaN(amount) || amount < 0) {
+        statusDiv.innerText = 'נא להזין סכום תקין חיובי.';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/update-entry-fee`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entryFee: amount })
+        });
+        const data = await res.json();
+        if (data.success) {
+            statusDiv.style.color = '#28a745';
+            statusDiv.innerText = 'עלות הכניסה עודכנה בהצלחה.';
+            loadAdminPanel();
+            cancelEntryFeeEdit();
+        } else {
+            statusDiv.style.color = '#d32f2f';
+            statusDiv.innerText = 'שגיאה בעדכון עלות ההשתתפות.';
+        }
+    } catch (error) {
+        console.error('Error updating entry fee:', error);
+        statusDiv.style.color = '#d32f2f';
+        statusDiv.innerText = 'שגיאה בעדכון עלות ההשתתפות';
+    }
+}
+
 // שליפת ה-groupId מה-URL
 // const urlParams = new URLSearchParams(window.location.search);
 // const groupId = urlParams.get('groupId');
@@ -171,7 +407,7 @@ async function lockGroupBets() {
     if(!confirm("האם אתה בטוח שברצונך לנעול את ההימורים? לא ניתן יהיה לבטל פעולה זו!")) return;
 
     try {
-        const res = await fetch(`/api/groups/${groupId}/lock`, {
+        const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/lock`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ lockMode })

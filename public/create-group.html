@@ -386,32 +386,29 @@
                         groupName,
                         creatorName,
                         tournamentStage,
-                        userId
+                        userId,
+                        payboxLink: document.getElementById('payboxLink').value.trim(),
+                        entryFee: Number(document.getElementById('entryFee').value) || 0
                     })
                 });
 
                 const data = await res.json();
-
                 if (data.success) {
-                    // שומרים את הסשן החדש של הקבוצה הזו במכשיר
                     sessions[data.groupId] = {
                         userId: userId,
                         userName: creatorName.trim()
                     };
                     localStorage.setItem('worldcup_sessions', JSON.stringify(sessions));
 
-                    // יוצרים קישור הזמנה אמיתי לקבוצה (מסך הצטרפות/הימורים)
                     const inviteLink = `${window.location.origin}/bet.html?groupId=${data.groupId}`;
 
                     try {
                         await navigator.clipboard.writeText(inviteLink);
                         alert('✅ קישור ההזמנה הועתק! אפשר עכשיו לעשות Ctrl+V ולשלוח לחברים.');
                     } catch (copyErr) {
-                        // fallback לדפדפנים שחוסמים Clipboard
                         prompt('העתקה אוטומטית נחסמה. העתק ידנית את הקישור:', inviteLink);
                     }
 
-                    // מעבירים אותו ישר ללובי של הקבוצה שזה עתה הקים!
                     window.location.href = `/index.html?groupId=${data.groupId}`;
                 } else {
                     errorDiv.innerText = data.message || "שגיאה ביצירת הקבוצה";

@@ -120,7 +120,9 @@
           "registeredAt": "2026-06-21T13:26:15.103Z"
         }
       },
-      "adminName": "ילון מהמשרד"
+      "adminName": "ילון מהמשרד",
+      "entry_fee": 51,
+      "paybox_link": "https://www.payboxapp.com/"
     },
     "group_vc45csl": {
       "group_name": "מעולה 2 קבוצה",
@@ -134,7 +136,8 @@
           "has_paid": true,
           "registeredAt": "2026-06-21T13:37:41.285Z"
         }
-      }
+      },
+      "entry_fee": 1
     },
     "group_3irayxh": {
       "group_name": "קבוצה 3",
@@ -161,6 +164,22 @@
           "userName": "ילון מהעבודה",
           "has_paid": true,
           "registeredAt": "2026-06-21T14:26:28.563Z"
+        }
+      }
+    },
+    "group_w3l9k13": {
+      "group_name": "פיבוקס20",
+      "admin_id": "user_wtu7wox",
+      "paybox_link": "https://www.payboxapp.com/",
+      "entry_fee": 20,
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "round_of_16",
+      "members": {
+        "user_wtu7wox": {
+          "userName": "ילון מהמשרד",
+          "has_paid": true,
+          "registeredAt": "2026-06-22T08:57:38.769Z"
         }
       }
     }
@@ -209,14 +228,29 @@
     },
     "group_54p8hv0": {
       "user_wtu7wox": {
-        "updated_at": "2026-06-22T06:42:45.394Z",
+        "updated_at": "2026-06-22T08:51:38.343Z",
+        "teams": {
+          "first": "Argentina",
+          "second": "Brazil",
+          "third": ""
+        },
+        "scorers": {
+          "first": "Kane",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_w3l9k13": {
+      "user_wtu7wox": {
+        "updated_at": "2026-06-22T08:58:03.273Z",
         "teams": {
           "first": "Argentina",
           "second": "France",
           "third": ""
         },
         "scorers": {
-          "first": "Mbappe",
+          "first": "",
           "second": "",
           "third": ""
         }

@@ -51,7 +51,11 @@
             <div id="nicknameStatus" style="font-size: 13px; margin-top: 8px; font-weight: bold; text-align: right;"></div>
         </div>
         <h2>🏆 הימורי המונדיאל שלי 🏆</h2>
-        <a id="payboxLinkBtn" href="#" target="_blank" class="link-btn">💰 לחץ כאן לתשלום ב-PayBox</a>
+        <div id="paymentStatusBlock" style="margin-bottom: 18px; padding: 18px; border-radius: 12px; background: #eef7ff; border: 1px solid #b8d7ff;">
+            <div id="paymentStatusText" style="font-weight: bold; color: #0f5132; margin-bottom: 8px;">טוען סטטוס תשלום...</div>
+            <div id="paymentAmountText" style="color: #084298; margin-bottom: 12px;"></div>
+            <a id="payboxLinkBtn" href="#" target="_blank" class="link-btn" style="display:inline-flex;">💳 תשלום ב-PayBox</a>
+        </div>
         
         <div class="form-group">
             <label>🥇 מקום ראשון (האלופה)</label>
@@ -82,7 +86,7 @@
         </div>
         <button onclick="savePredictions()">שמור את הניחושים שלי</button>
         <div style="margin-top: 12px; margin-bottom: 15px;">
-            <a href="/index.html" style="display: inline-flex; justify-content: center; align-items: center; width: 100%; padding: 12px 15px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; gap: 6px; box-sizing: border-box;">⬅️ ביטול וחזרה ללובי</a>
+            <a id="cancelBackLink" href="/index.html" style="display: inline-flex; justify-content: center; align-items: center; width: 100%; padding: 12px 15px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; gap: 6px; box-sizing: border-box;">⬅️ ביטול וחזרה ללובי</a>
         </div>
     </div>
 </div>
@@ -94,6 +98,7 @@ const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123";
 
 let CURRENT_USER_ID = null;
 let CURRENT_USER_NAME = null;
+let CURRENT_GROUP_DATA = null;
 
 // פונקציה לטעינת פרטי הקבוצה מהשרת (מעודכנת עם חסימת נעילה)
 async function fetchGroupDetails() {
@@ -103,9 +108,15 @@ async function fetchGroupDetails() {
             const data = await res.json();
             document.getElementById('groupNameHeader').innerText = `קבוצה: ${data.group.group_name}`;
             
+            CURRENT_GROUP_DATA = data.group;
             if(data.group.paybox_link) {
                 document.getElementById('payboxLinkBtn').href = data.group.paybox_link;
+                document.getElementById('payboxLinkBtn').style.display = 'inline-flex';
+            } else {
+                document.getElementById('payboxLinkBtn').style.display = 'none';
             }
+
+            updatePaymentStatusUI();
 
             // 🔥 בדיקה האם המנהל נעל את ההימורים לקבוצה זו
             if (data.group && data.group.betsLocked) {
@@ -117,6 +128,37 @@ async function fetchGroupDetails() {
         }
     } catch (error) {
         console.error("Error fetching group:", error);
+    }
+}
+
+function updatePaymentStatusUI() {
+    const statusText = document.getElementById('paymentStatusText');
+    const amountText = document.getElementById('paymentAmountText');
+    const payboxBtn = document.getElementById('payboxLinkBtn');
+
+    if (!CURRENT_GROUP_DATA) {
+        if (statusText) statusText.innerText = 'לא ניתן לטעון את סטטוס התשלום.';
+        if (amountText) amountText.innerText = '';
+        if (payboxBtn) payboxBtn.style.display = 'none';
+        return;
+    }
+
+    const entryFee = CURRENT_GROUP_DATA.entry_fee || 0;
+    const memberInfo = CURRENT_GROUP_DATA.members?.[CURRENT_USER_ID] || {};
+    const hasPaid = !!memberInfo.has_paid;
+    const amountLabel = entryFee > 0 ? `עלות כניסה: ${entryFee} ₪` : 'עלות כניסה: לא הוגדרה';
+    const paidLabel = hasPaid ? 'סטטוס תשלום: שולם ✅' : 'סטטוס תשלום: טרם שולם ⛔';
+
+    if (statusText) statusText.innerText = paidLabel;
+    if (amountText) amountText.innerText = amountLabel;
+    if (payboxBtn) {
+        if (CURRENT_GROUP_DATA.paybox_link) {
+            payboxBtn.href = CURRENT_GROUP_DATA.paybox_link;
+            payboxBtn.style.display = 'inline-flex';
+            payboxBtn.innerText = hasPaid ? '💳 תשלום חוזר ב-PayBox' : '💳 לשלם ב-PayBox';
+        } else {
+            payboxBtn.style.display = 'none';
+        }
     }
 }
 
@@ -169,6 +211,7 @@ function checkUserSession() {
         
         // אחרי שהמסך מוצג, נטען את ההימורים הקיימים של המשתמש מהשרת
         loadSavedPredictions();
+        updatePaymentStatusUI();
     } else {
         document.getElementById('registerScreen').style.display = 'block';
     }
@@ -217,6 +260,7 @@ async function loadSavedPredictions() {
                     document.getElementById('scorerFirst').value = myPred.scorers.first;
                 }
             }
+            updatePaymentStatusUI();
         }
     } catch (error) {
         console.error("Error loading user predictions:", error);
@@ -266,7 +310,7 @@ async function savePredictions() {
         const data = await res.json();
         
         if (data.success) {
-            alert('הניחושים נשמרו בהצלחה!');
+            isFormChanged = false;
             window.location.href = '/index.html'; 
         } else {
             alert('שגיאה בשמירה: ' + data.message);
@@ -275,6 +319,13 @@ async function savePredictions() {
         console.error("Error saving predictions:", error);
         alert('שגיאה בתקשורת עם השרת');
     }
+}
+
+const cancelBackLink = document.getElementById('cancelBackLink');
+if (cancelBackLink) {
+    cancelBackLink.addEventListener('click', function() {
+        isFormChanged = false;
+    });
 }
 
 async function saveUserNickname() {

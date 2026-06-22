@@ -45,9 +45,14 @@ app.post('/api/groups/create', (req, res) => {
     }
 
     // בניית האובייקט החדש ללא כפילויות של adminName!
+    const entryFee = Number(req.body.entryFee) || 0;
+    const payboxLink = req.body.payboxLink ? String(req.body.payboxLink).trim() : "";
+
     db.groups[groupId] = {
         group_name: groupName.trim(),
         admin_id: userId,
+        paybox_link: payboxLink,
+        entry_fee: entryFee,
         status: 'voting_open',
         betsLocked: false,
         tournamentStage: tournamentStage || "full", // נשמר ישירות ב-DB
@@ -99,6 +104,34 @@ app.post('/api/groups/toggle-payment', (req, res) => {
     }
 
     res.status(404).json({ success: false, message: "קבוצה או משתמש לא נמצאו" });
+});
+
+app.post('/api/groups/:id/update-entry-fee', (req, res) => {
+    const groupId = req.params.id;
+    const { entryFee } = req.body;
+    const db = readDB();
+
+    if (!db.groups[groupId]) {
+        return res.status(404).json({ success: false, message: "הקבוצה לא נמצאה" });
+    }
+
+    db.groups[groupId].entry_fee = Number(entryFee) || 0;
+    writeDB(db);
+    res.json({ success: true, message: "עלות ההשתתפות עודכנה" });
+});
+
+app.post('/api/groups/:id/update-paybox-link', (req, res) => {
+    const groupId = req.params.id;
+    const { payboxLink } = req.body;
+    const db = readDB();
+
+    if (!db.groups[groupId]) {
+        return res.status(404).json({ success: false, message: "הקבוצה לא נמצאה" });
+    }
+
+    db.groups[groupId].paybox_link = payboxLink ? String(payboxLink).trim() : "";
+    writeDB(db);
+    res.json({ success: true, message: "קישור PayBox עודכן" });
 });
 
 app.post('/api/predictions/save', (req, res) => {
