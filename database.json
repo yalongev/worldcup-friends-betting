@@ -24,16 +24,49 @@
       "name": "ילון מהעבודה",
       "email": "",
       "created_at": "2026-06-21T13:26:15.103Z"
+    },
+    "user_c3u5nvb": {
+      "name": "מהמר6",
+      "email": "",
+      "created_at": "2026-06-22T12:51:48.528Z"
+    },
+    "user_a7d0vlanx": {
+      "name": "בדיקת מונגו",
+      "email": "test@example.com",
+      "created_at": "2026-06-22T12:54:09.055Z"
+    },
+    "user_ebic0h0bm": {
+      "name": "בדיקת ניחוש",
+      "email": "pred@example.com",
+      "created_at": "2026-06-22T12:54:09.079Z"
+    },
+    "user_v33w2ow": {
+      "name": "ילון בבבב",
+      "email": "",
+      "created_at": "2026-06-22T12:54:36.065Z"
+    },
+    "user_8pbf6ef": {
+      "name": "מהמר על MBטטט",
+      "email": "",
+      "created_at": "2026-06-22T12:59:11.557Z"
     }
   },
   "groups": {
     "group_test123": {
       "group_name": "קבוצת בדיקה",
       "admin_id": "admin",
-      "paybox_link": "",
+      "paybox_link": "https://paybox.test/link",
       "status": "voting_open",
       "members": {
         "user_5l694793f": {
+          "has_paid": true,
+          "total_score": 0
+        },
+        "user_a7d0vlanx": {
+          "has_paid": false,
+          "total_score": 0
+        },
+        "user_ebic0h0bm": {
           "has_paid": false,
           "total_score": 0
         }
@@ -44,7 +77,8 @@
         "third_place": 1
       },
       "betsLocked": true,
-      "unpaidLockMode": "spectator"
+      "unpaidLockMode": "spectator",
+      "entry_fee": 99
     },
     "group_86253pr3k": {
       "group_name": "המשפחה המהמרת ⚽",
@@ -182,6 +216,54 @@
           "registeredAt": "2026-06-22T08:57:38.769Z"
         }
       }
+    },
+    "group_14kct1j": {
+      "group_name": "6קבוצה",
+      "admin_id": "user_c3u5nvb",
+      "paybox_link": "https://www.payboxapp.com/",
+      "entry_fee": 40,
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "round_of_16",
+      "members": {
+        "user_c3u5nvb": {
+          "userName": "מהמר6",
+          "has_paid": true,
+          "registeredAt": "2026-06-22T12:51:48.528Z"
+        }
+      }
+    },
+    "group_ea69u8n": {
+      "group_name": "יום ב קבוצה",
+      "admin_id": "user_v33w2ow",
+      "paybox_link": "https://www.payboxapp.com/",
+      "entry_fee": 50,
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "quarter",
+      "members": {
+        "user_v33w2ow": {
+          "userName": "ילון בבבב",
+          "has_paid": false,
+          "registeredAt": "2026-06-22T12:54:36.065Z"
+        }
+      }
+    },
+    "group_dhk2ccp": {
+      "group_name": "יום טט קבוצה",
+      "admin_id": "user_8pbf6ef",
+      "paybox_link": "https://www.payboxapp.com/",
+      "entry_fee": 50,
+      "status": "voting_open",
+      "betsLocked": false,
+      "tournamentStage": "quarter",
+      "members": {
+        "user_8pbf6ef": {
+          "userName": "מהמר על MBטטט",
+          "has_paid": false,
+          "registeredAt": "2026-06-22T12:59:11.557Z"
+        }
+      }
     }
   },
   "predictions": {
@@ -296,6 +378,63 @@
         },
         "scorers": {
           "first": "bellingham",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_14kct1j": {
+      "user_c3u5nvb": {
+        "updated_at": "2026-06-22T12:52:08.971Z",
+        "teams": {
+          "first": "799",
+          "second": "779",
+          "third": ""
+        },
+        "scorers": {
+          "first": "messi",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_test123": {
+      "user_ebic0h0bm": {
+        "updated_at": "2026-06-22T12:54:09.100Z",
+        "teams": {
+          "first": "BRA",
+          "second": "ARG"
+        },
+        "scorers": {
+          "first": "messi"
+        }
+      }
+    },
+    "group_ea69u8n": {
+      "user_v33w2ow": {
+        "updated_at": "2026-06-22T12:54:56.716Z",
+        "teams": {
+          "first": "9460",
+          "second": "770",
+          "third": ""
+        },
+        "scorers": {
+          "first": "yamal",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_dhk2ccp": {
+      "user_8pbf6ef": {
+        "updated_at": "2026-06-22T12:59:25.004Z",
+        "teams": {
+          "first": "825",
+          "second": "825",
+          "third": ""
+        },
+        "scorers": {
+          "first": "lewandowski",
           "second": "",
           "third": ""
         }

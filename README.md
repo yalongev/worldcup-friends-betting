@@ -22,3 +22,16 @@
 https://www.football-data.org/
 9358.700@gmail.com
 Your API token: 51910283b0964f4a9ef4be0ced66c701
+
+https://cloud.mongodb.com/
+Username
+9358700_db_user
+Password
+xIeESg7l17hTt0YG
+
+Connect to Cluster0
+Username
+yalon
+Password
+Yalon11
+mongodb+srv://yalon:Yalon11@cluster0.kyrptw6.mongodb.net/?appName=Cluster0
