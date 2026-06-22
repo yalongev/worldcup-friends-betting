@@ -115,11 +115,12 @@
       "tournamentStage": "round_of_16",
       "members": {
         "user_wtu7wox": {
-          "userName": "ילון מהעבודה",
-          "has_paid": true,
+          "userName": "ילון מהמשרד",
+          "has_paid": false,
           "registeredAt": "2026-06-21T13:26:15.103Z"
         }
-      }
+      },
+      "adminName": "ילון מהמשרד"
     },
     "group_vc45csl": {
       "group_name": "מעולה 2 קבוצה",
@@ -201,6 +202,21 @@
         },
         "scorers": {
           "first": "Messi",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_54p8hv0": {
+      "user_wtu7wox": {
+        "updated_at": "2026-06-22T06:42:45.394Z",
+        "teams": {
+          "first": "Argentina",
+          "second": "France",
+          "third": ""
+        },
+        "scorers": {
+          "first": "Mbappe",
           "second": "",
           "third": ""
         }

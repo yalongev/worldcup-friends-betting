@@ -19,6 +19,17 @@
         .status-unpaid { background: #fffde7; color: #f57f17; border-color: #fff59d; }
         
         .btn-back { display: inline-block; background: #6c757d; color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 14px; }
+        /* subtle animations for admin card show/hide */
+        #groupNameCard, #groupNameEditSection {
+            opacity: 0;
+            transform: translateY(-6px);
+            transition: opacity 180ms ease, transform 180ms ease;
+            will-change: opacity, transform;
+        }
+        #groupNameCard.visible, #groupNameEditSection.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
@@ -26,12 +37,19 @@
 <div class="container">
     <a href="/index.html" class="btn-back">⬅️ חזרה ללובי</a>
     <h1>🛠️ פאנל ניהול ותשלומים</h1>
-    <div id="groupSubTitle" class="group-title">טוען נתונים...</div>
-    <div class="card" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <label style="font-weight: bold; display: block; margin-bottom: 8px;">🛠️ עריכת שם הקבוצה:</label>
-        <div style="display: flex; gap: 8px;">
-            <input type="text" id="groupNameInput" style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
-            <button onclick="updateGroupName()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">עדכן שם</button>
+    <div id="groupSubTitle" class="group-title" style="display:flex;align-items:center;justify-content:center;gap:10px;">
+        <span id="groupSubTitleText">טוען נתונים...</span>
+        <button id="editGroupNameBtn" type="button" onclick="enterGroupNameEditMode()" style="background: #d7ebd7; color: #385723; border: 1px solid #c4ddc3; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; display: none;">✏️</button>
+    </div>
+    <div id="groupNameCard" class="card" style="display: none; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <label style="font-weight: bold; display: block; margin-bottom: 8px;">🛠️ שנה שם הקבוצה:</label>
+        <span id="groupNameText" style="display: block; font-weight: bold; font-size: 16px; color: #333; background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 10px; box-sizing: border-box;"></span>
+        <div id="groupNameEditSection" style="display: none; background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #e0e0e0; box-sizing: border-box; width: 100%; direction: rtl;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="groupNameInput" style="flex: 1; min-width: 180px; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                <button onclick="updateGroupName()" style="background: #17a2b8; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">שמור</button>
+                <button type="button" onclick="cancelGroupNameEdit()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">בטל</button>
+            </div>
         </div>
         <div id="groupNameStatus" style="font-size: 13px; margin-top: 5px;"></div>
     </div>
@@ -71,9 +89,19 @@ async function loadAdminPanel() {
         const group = data.group;
         
         // 1. עדכון כותרת העמוד הקיימת
-        document.getElementById('groupSubTitle').innerText = `ניהול קבוצת: ${group.group_name}`;
+        if (document.getElementById('groupSubTitleText')) {
+            document.getElementById('groupSubTitleText').innerText = `ניהול קבוצת: ${group.group_name}`;
+        } else {
+            document.getElementById('groupSubTitle').innerText = `ניהול קבוצת: ${group.group_name}`;
+        }
 
-        // 🔥 שורת המחץ: מציבים את שם הקבוצה הנוכחי בתוך תיבת האינפוט של העריכה
+        // 🔥 שורת המחץ: מציבים את שם הקבוצה הנוכחי במקום המתאים
+        if (document.getElementById('groupNameText')) {
+            document.getElementById('groupNameText').innerText = group.group_name;
+        }
+        if (document.getElementById('editGroupNameBtn')) {
+            document.getElementById('editGroupNameBtn').style.display = 'inline-flex';
+        }
         if (document.getElementById('groupNameInput')) {
             document.getElementById('groupNameInput').value = group.group_name;
         }
@@ -160,6 +188,46 @@ async function lockGroupBets() {
     }
 }
 
+function enterGroupNameEditMode() {
+    const card = document.getElementById('groupNameCard');
+    const edit = document.getElementById('groupNameEditSection');
+    const btn = document.getElementById('editGroupNameBtn');
+    if (card && edit) {
+        // show card and edit with fade
+        card.style.display = 'block';
+        // force reflow then add visible class
+        void card.offsetHeight;
+        card.classList.add('visible');
+
+        edit.style.display = 'block';
+        void edit.offsetHeight;
+        edit.classList.add('visible');
+    }
+    if (btn) btn.style.display = 'none';
+    if (document.getElementById('groupNameInput')) {
+        document.getElementById('groupNameInput').value = document.getElementById('groupNameText').innerText || '';
+    }
+    document.getElementById('groupNameStatus').innerText = '';
+}
+
+function cancelGroupNameEdit() {
+    const card = document.getElementById('groupNameCard');
+    const edit = document.getElementById('groupNameEditSection');
+    const btn = document.getElementById('editGroupNameBtn');
+    if (edit) {
+        edit.classList.remove('visible');
+        // after transition hide
+        setTimeout(() => { edit.style.display = 'none'; }, 200);
+    }
+    if (card) {
+        card.classList.remove('visible');
+        setTimeout(() => { card.style.display = 'none'; if (btn) btn.style.display = 'inline-flex'; }, 220);
+    } else if (btn) {
+        btn.style.display = 'inline-flex';
+    }
+    document.getElementById('groupNameStatus').innerText = '';
+}
+
 async function updateGroupName() {
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('groupId');
@@ -179,9 +247,23 @@ async function updateGroupName() {
         if (data.success) {
             statusDiv.style.color = "green";
             statusDiv.innerText = "🏆 שם הקבוצה עודכן בהצלחה!";
+            document.getElementById('groupNameText').innerText = newGroupName;
+            if (document.getElementById('groupNameInput')) {
+                document.getElementById('groupNameInput').value = newGroupName;
+            }
+            const card = document.getElementById('groupNameCard');
+            const edit = document.getElementById('groupNameEditSection');
+            const btn = document.getElementById('editGroupNameBtn');
+            if (edit) { edit.classList.remove('visible'); setTimeout(() => { edit.style.display = 'none'; }, 200); }
+            if (card) { card.classList.remove('visible'); setTimeout(() => { card.style.display = 'none'; if (btn) btn.style.display = 'inline-flex'; }, 220); } else if (btn) { btn.style.display = 'inline-flex'; }
             // עדכון כותרת העמוד הראשית במידת הצורך
             if(document.getElementById('groupTitle')) {
                 document.getElementById('groupTitle').innerText = data.group_name;
+            }
+            if (document.getElementById('groupSubTitleText')) {
+                document.getElementById('groupSubTitleText').innerText = `ניהול קבוצת: ${newGroupName}`;
+            } else {
+                document.getElementById('groupSubTitle').innerText = `ניהול קבוצת: ${newGroupName}`;
             }
         } else {
             statusDiv.style.color = "red";

@@ -36,19 +36,20 @@
     </div>
 
     <div id="bettingScreen">
-        <div style="margin-bottom: 15px; display: flex; justify-content: flex-start;">
-            <a href="/index.html" style="padding: 8px 15px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">⬅️ ביטול וחזרה ללובי</a>
+
+        <div id="welcomeUser" class="welcome-msg" style="display: inline-flex; justify-content: center; align-items: center; gap: 6px; width: 100%; text-align: center; direction: rtl; white-space: nowrap;">
+            <span id="welcomeUserText" style="text-align: center;"></span>
+            <button id="editNicknameBtn" onclick="enterNicknameEditMode()" style="background: #d7ebd7; color: #385723; border: 1px solid #c4ddc3; padding: 6px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; box-shadow: none;">✏️</button>
         </div>
-        <div id="welcomeUser" class="welcome-msg"></div>
-<div style="background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-sizing: border-box; width: 100%; direction: rtl;">
-    <label style="font-weight: bold; font-size: 15px; display: block; margin-bottom: 10px; color: #333; text-align: right;">✏️ הכינוי שלך בקבוצה זו:</label>
-    
-    <input type="text" id="userNicknameInput" style="width: 100%; height: 42px; padding: 0 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background: white; color: #333; display: block; margin-bottom: 12px; text-align: right;">
-    
-    <button onclick="updateUserNickname()" style="background: #28a745; color: white; border: none; width: 100%; height: 42px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; display: block; box-sizing: border-box;">שמור שם</button>
-    
-    <div id="nicknameStatus" style="font-size: 13px; margin-top: 8px; font-weight: bold; text-align: right;"></div>
-</div>
+        <div id="nicknameEditSection" style="display: none; background: #f8f9fa; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0e0e0; box-sizing: border-box; width: 100%; direction: rtl;">
+            <label style="font-weight: bold; font-size: 15px; display: block; margin-bottom: 10px; color: #333; text-align: right;">שנה כינוי בקבוצה זו:</label>
+            <input type="text" id="userNicknameInput" style="width: 100%; height: 42px; padding: 0 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; box-sizing: border-box; background: white; color: #333; display: block; margin-bottom: 12px; text-align: right;">
+            <div style="display: flex; gap: 10px; justify-content: flex-start; flex-wrap: wrap;">
+                <button id="saveNicknameBtn" onclick="saveUserNickname()" style="background: #28a745; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold;">שמור</button>
+                <button id="cancelNicknameBtn" onclick="cancelNicknameEdit()" style="background: #6c757d; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold;">בטל</button>
+            </div>
+            <div id="nicknameStatus" style="font-size: 13px; margin-top: 8px; font-weight: bold; text-align: right;"></div>
+        </div>
         <h2>🏆 הימורי המונדיאל שלי 🏆</h2>
         <a id="payboxLinkBtn" href="#" target="_blank" class="link-btn">💰 לחץ כאן לתשלום ב-PayBox</a>
         
@@ -80,6 +81,9 @@
             </select>
         </div>
         <button onclick="savePredictions()">שמור את הניחושים שלי</button>
+        <div style="margin-top: 12px; margin-bottom: 15px;">
+            <a href="/index.html" style="display: inline-flex; justify-content: center; align-items: center; width: 100%; padding: 12px 15px; background: #6c757d; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; gap: 6px; box-sizing: border-box;">⬅️ ביטול וחזרה ללובי</a>
+        </div>
     </div>
 </div>
 
@@ -173,7 +177,21 @@ function checkUserSession() {
 function showBettingScreen() {
     document.getElementById('registerScreen').style.display = 'none';
     document.getElementById('bettingScreen').style.display = 'block';
-    document.getElementById('welcomeUser').innerText = `מחובר כעת בתור: ${CURRENT_USER_NAME}`;
+    document.getElementById('welcomeUserText').innerText = `מחובר כעת בתור: ${CURRENT_USER_NAME}`;
+    document.getElementById('editNicknameBtn').style.display = 'inline-flex';
+}
+
+function enterNicknameEditMode() {
+    document.getElementById('nicknameEditSection').style.display = 'block';
+    document.getElementById('editNicknameBtn').style.display = 'none';
+    document.getElementById('userNicknameInput').value = CURRENT_USER_NAME || '';
+    document.getElementById('nicknameStatus').innerText = '';
+}
+
+function cancelNicknameEdit() {
+    document.getElementById('nicknameEditSection').style.display = 'none';
+    document.getElementById('editNicknameBtn').style.display = 'inline-flex';
+    document.getElementById('nicknameStatus').innerText = '';
 }
 
 // 🔥 הפונקציה החדשה שטוענת את הניחושים שכבר נשמרו ומציגה אותם בטופס
@@ -259,7 +277,7 @@ async function savePredictions() {
     }
 }
 
-async function updateUserNickname() {
+async function saveUserNickname() {
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('groupId');
     const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
@@ -267,8 +285,14 @@ async function updateUserNickname() {
     if (!sessions[groupId]) return;
     
     const userId = sessions[groupId].userId;
-    const newUserName = document.getElementById('userNicknameInput').value;
+    const newUserName = document.getElementById('userNicknameInput').value.trim();
     const statusDiv = document.getElementById('nicknameStatus');
+
+    if (!newUserName) {
+        statusDiv.style.color = "red";
+        statusDiv.innerText = "נא להזין שם תקין כדי לשמור";
+        return;
+    }
 
     try {
         const res = await fetch(`/api/groups/${groupId}/update-username`, {
@@ -279,14 +303,16 @@ async function updateUserNickname() {
         const data = await res.json();
         
         if (data.success) {
-            // 🔥 עדכון ה-localStorage המקומי כדי שהלובי (index.html) יציג את השם החדש מיד!
+            CURRENT_USER_NAME = data.userName;
             sessions[groupId].userName = data.userName;
             localStorage.setItem('worldcup_sessions', JSON.stringify(sessions));
 
+            document.getElementById('welcomeUser').innerText = `מחובר כעת בתור: ${CURRENT_USER_NAME}`;
+            document.getElementById('nicknameEditSection').style.display = 'none';
+            document.getElementById('editNicknameBtn').style.display = 'inline-flex';
+
             statusDiv.style.color = "green";
             statusDiv.innerText = "👤 שמך עודכן בהצלחה במערכת!";
-
-            window.location.reload();
         } else {
             statusDiv.style.color = "red";
             statusDiv.innerText = data.message;
