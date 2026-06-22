@@ -60,28 +60,20 @@
         <div class="form-group">
             <label>🥇 מקום ראשון (האלופה)</label>
             <select id="teamFirst">
-                <option value="Argentina">ארגנטינה 🇦🇷</option>
-                <option value="Brazil">ברזיל 🇧🇷</option>
-                <option value="France">צרפת 🇫🇷</option>
-                <option value="Germany">גרמניה 🇩🇪</option>
+                <option value="">טוען נבחרות...</option>
             </select>
         </div>
         <div class="form-group">
             <label>🥈 מקום שני (סגנית)</label>
             <select id="teamSecond">
-                <option value="France">צרפת 🇫🇷</option>
-                <option value="Brazil">ברזיל 🇧🇷</option>
-                <option value="Argentina">ארגנטינה 🇦🇷</option>
+                <option value="">טוען נבחרות...</option>
             </select>
         </div>
        <div class="form-group">
+        <div class="form-group">
             <label>⚽ מלך השערים (מקום 1)</label>
             <select id="scorerFirst">
-                <option value="">-- בחר שחקן --</option>
-                <option value="Mbappe">קיליאן אמבפה 🇫🇷</option>
-                <option value="Messi">ליונל מסי 🇦🇷</option>
-                <option value="Kane">הארי קיין 🏴󠁧󠁢󠁥󠁮󠁧󠁿</option>
-                <option value="Ronaldo">כריסטיאנו רונלדו 🇵🇹</option>
+                <option value="">טוען מועמדים...</option>
             </select>
         </div>
         <button onclick="savePredictions()">שמור את הניחושים שלי</button>
@@ -214,6 +206,78 @@ function checkUserSession() {
         updatePaymentStatusUI();
     } else {
         document.getElementById('registerScreen').style.display = 'block';
+    }
+}
+
+async function loadWorldCupTeams() {
+    const teamFirst = document.getElementById('teamFirst');
+    const teamSecond = document.getElementById('teamSecond');
+
+    if (teamFirst) {
+        teamFirst.innerHTML = '<option value="">טוען נבחרות...</option>';
+    }
+    if (teamSecond) {
+        teamSecond.innerHTML = '<option value="">טוען נבחרות...</option>';
+    }
+
+    try {
+        const res = await fetch('/api/teams/WC');
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+            console.warn('Failed to load WC teams', data);
+            const fallback = '<option value="">לא ניתן לטעון נבחרות</option>';
+            if (teamFirst) teamFirst.innerHTML = fallback;
+            if (teamSecond) teamSecond.innerHTML = fallback;
+            return;
+        }
+
+        const teams = (data.teams || []).sort((a, b) => a.name.localeCompare(b.name, 'he', { sensitivity: 'base' }));
+        const options = teams.map(team => {
+            const label = `${team.name}${team.tla ? ' (' + team.tla + ')' : ''}`;
+            return `<option value="${team.id}">${label}</option>`;
+        }).join('');
+
+        if (teamFirst) {
+            teamFirst.innerHTML = '<option value="">בחר נבחרת</option>' + options;
+        }
+        if (teamSecond) {
+            teamSecond.innerHTML = '<option value="">בחר נבחרת</option>' + options;
+        }
+    } catch (error) {
+        console.error('Error loading WC teams:', error);
+        const fallback = '<option value="">לא ניתן לטעון נבחרות</option>';
+        if (teamFirst) teamFirst.innerHTML = fallback;
+        if (teamSecond) teamSecond.innerHTML = fallback;
+    }
+}
+
+async function loadTopScorerCandidates() {
+    const scorerFirst = document.getElementById('scorerFirst');
+    if (scorerFirst) {
+        scorerFirst.innerHTML = '<option value="">טוען מועמדים...</option>';
+    }
+
+    try {
+        const res = await fetch('/api/top-scorers-candidates');
+        const data = await res.json();
+
+        if (!res.ok) {
+            console.warn('Failed to load top scorers candidates', data);
+            if (scorerFirst) scorerFirst.innerHTML = '<option value="">לא ניתן לטעון מועמדים</option>';
+            return;
+        }
+
+        const options = (data || []).map(candidate => `
+            <option value="${candidate.id}">${candidate.name}</option>
+        `).join('');
+
+        if (scorerFirst) {
+            scorerFirst.innerHTML = '<option value="">בחר מועמד</option>' + options;
+        }
+    } catch (error) {
+        console.error('Error loading top scorers candidates:', error);
+        if (scorerFirst) scorerFirst.innerHTML = '<option value="">לא ניתן לטעון מועמדים</option>';
     }
 }
 
@@ -397,8 +461,12 @@ window.addEventListener('beforeunload', function (e) {
 isFormChanged = false;
 
 // הרצה
-fetchGroupDetails();
-checkUserSession();
+async function initializeBetPage() {
+    await Promise.all([fetchGroupDetails(), loadWorldCupTeams(), loadTopScorerCandidates()]);
+    checkUserSession();
+}
+
+initializeBetPage();
 
 </script>
 </body>

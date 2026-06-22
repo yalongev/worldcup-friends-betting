@@ -7,6 +7,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'database.json');
+const FOOTBALL_DATA_API = 'https://api.football-data.org/v4';
+const FOOTBALL_DATA_TOKEN = process.env.FOOTBALL_DATA_TOKEN || '51910283b0964f4a9ef4be0ced66c701';
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -71,6 +73,46 @@ app.post('/api/groups/create', (req, res) => {
         success: true,
         groupId: groupId
     });
+});
+
+// API: קבלת רשימת נבחרות לפי קוד תחרות
+app.get('/api/teams/:competitionCode', async (req, res) => {
+    const competitionCode = String(req.params.competitionCode || 'WC').toUpperCase();
+
+    try {
+        const apiRes = await fetch(`${FOOTBALL_DATA_API}/competitions/${competitionCode}/teams`, {
+            headers: {
+                'X-Auth-Token': FOOTBALL_DATA_TOKEN,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!apiRes.ok) {
+            const errorText = await apiRes.text();
+            return res.status(apiRes.status).json({
+                success: false,
+                message: `Football-data API returned ${apiRes.status}`,
+                details: errorText
+            });
+        }
+
+        const payload = await apiRes.json();
+        const teams = (payload.teams || []).map(team => ({
+            id: team.id,
+            name: team.name,
+            shortName: team.shortName || team.name,
+            tla: team.tla || ''
+        }));
+
+        res.json({ success: true, teams });
+    } catch (error) {
+        console.error('Error fetching teams from football-data:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בשרת בזמן שליפת הנבחרות',
+            details: error.message
+        });
+    }
 });
 
 // API: נעילת הימורים לקבוצה וקביעת מצב המשתתפים שלא שילמו
@@ -152,6 +194,53 @@ app.post('/api/predictions/save', (req, res) => {
 
     writeDB(db);
     res.json({ success: true });
+});
+
+app.get('/api/top-scorers-candidates', (req, res) => {
+    const candidates = [
+        { id: "mbappe", name: "קילאן אמבפה (צרפת)", tla: "FRA" },
+        { id: "haaland", name: "ארלינג הולאנד (נורווגיה)", tla: "NOR" },
+        { id: "vinicius", name: "ויניסיוס ג'וניור (ברזיל)", tla: "BRA" },
+        { id: "bellingham", name: "ג'וד בלינגהאם (אנגליה)", tla: "ENG" },
+        { id: "kane", name: "הארי קיין (אנגליה)", tla: "ENG" },
+        { id: "messi", name: "לאונל מסי (ארגנטינה)", tla: "ARG" },
+        { id: "ronaldo", name: "כריסטיאנו רונאלדו (פורטוגל)", tla: "POR" },
+        { id: "yamal", name: "לאמין ימאל (ספרד)", tla: "ESP" },
+        { id: "musiala", name: "ג'מאל מוסיאלה (גרמניה)", tla: "GER" },
+        { id: "martinez", name: "לאוטרו מרטינז (ארגנטינה)", tla: "ARG" },
+        { id: "lewandowski", name: "רוברט לבנדובסקי (פולין)", tla: "POL" },
+        { id: "alvarez", name: "חוליאן אלברז (ארגנטינה)", tla: "ARG" },
+        { id: "other", name: "✍️ שחקן אחר (נא לפרט בהערות הקבוצה)", tla: "OTH" }
+    ];
+    res.json(candidates);
+});
+
+app.get('/api/wc-standings', async (req, res) => {
+    try {
+        const apiRes = await fetch(`${FOOTBALL_DATA_API}/competitions/WC/standings`, {
+            headers: {
+                'X-Auth-Token': FOOTBALL_DATA_TOKEN,
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!apiRes.ok) {
+            const errorText = await apiRes.text();
+            return res.status(apiRes.status).json({
+                success: false,
+                message: `Football-data API returned ${apiRes.status}`
+            });
+        }
+
+        const data = await apiRes.json();
+        res.json({ success: true, standings: data.standings || [] });
+    } catch (error) {
+        console.error('Error fetching WC standings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'שגיאה בשליפת טבלת הבתים'
+        });
+    }
 });
 
 // API: קבלת פרטי קבוצה, כולל שמות חברים, הניחושים שלהם ושם המנהל

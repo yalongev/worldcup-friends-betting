@@ -28,6 +28,12 @@
         .badge-unpaid { background: #ffc107; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         .badge-spectator { background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
         
+        .standings-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .standings-table th, .standings-table td { padding: 8px 6px; text-align: right; border-bottom: 1px solid #ddd; }
+        .standings-table th { background-color: #6f42c1; color: white; font-weight: bold; }
+        .standings-table tr:hover { background-color: #f5f5f5; }
+        .standings-rank { font-weight: bold; color: #1e3c72; min-width: 30px; }
+        
         .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .btn { padding: 8px 15px; border-radius: 6px; font-weight: bold; font-size: 14px; text-decoration: none; cursor: pointer; border: none; }
         .btn-back { background: #6c757d; color: white; }
@@ -66,6 +72,13 @@
         <div id="statsContent">מחשב נתונים סטטיסטיים...</div>
     </div>
 
+    <div id="standingsSection" style="display: none; margin-bottom: 25px;">
+        <h3>🏆 טבלת בתי המונדיאל</h3>
+        <div id="standingsContainer">
+            <p style="text-align: center; color: #999;">טוען נתוני טבלה מ-football-data.org...</p>
+        </div>
+    </div>
+
     <h3>👥 חברי הקבוצה והניחושים שלהם:</h3>
     <table>
         <thead>
@@ -90,6 +103,103 @@
         "Argentina": "ארגנטינה 🇦🇷", "Brazil": "ברזיל 🇧🇷", "France": "צרפת 🇫🇷", "Germany": "גרמניה 🇩🇪",
         "Mbappe": "קיליאן אמבפה 🇫🇷", "Messi": "ליונל מסי 🇦🇷", "Kane": "הארי קיין 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Ronaldo": "כריסטיאנו רונלדו 🇵🇹"
     };
+    const teamLabelMap = { ...translations };
+
+    async function loadWorldCupTeamsForLeaderboard() {
+        try {
+            const res = await fetch('/api/teams/WC');
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                console.warn('Could not load WC teams for leaderboard', data);
+                return;
+            }
+
+            (data.teams || []).forEach(team => {
+                const label = team.tla ? `${team.name} (${team.tla})` : team.name;
+                teamLabelMap[team.name] = label;
+                if (team.shortName) {
+                    teamLabelMap[team.shortName] = label;
+                }
+            });
+        } catch (error) {
+            console.error('Error loading WC teams for leaderboard:', error);
+        }
+    }
+
+    function formatTeamLabel(teamKey) {
+        if (!teamKey) return 'טרם ניחש';
+        return teamLabelMap[teamKey] || teamKey;
+    }
+
+    async function loadWCStandings() {
+        const container = document.getElementById('standingsContainer');
+        const section = document.getElementById('standingsSection');
+        if (!container || !section) return;
+
+        try {
+            const res = await fetch('/api/wc-standings');
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                console.warn('Could not load WC standings', data);
+                container.innerHTML = '<p style="color: #d32f2f;">לא ניתן לטעון את טבלת הבתים</p>';
+                section.style.display = 'block';
+                return;
+            }
+
+            if (!data.standings || data.standings.length === 0) {
+                container.innerHTML = '<p style="color: #999;">אין נתוני טבלה זמינים כרגע</p>';
+                section.style.display = 'block';
+                return;
+            }
+
+            // Find the group stage standings (usually first in the list)
+            const groupStage = data.standings.find(s => s.type === 'TOTAL') || data.standings[0];
+            if (!groupStage || !groupStage.table) {
+                container.innerHTML = '<p style="color: #999;">אין נתוני טבלת בתים זמינים</p>';
+                section.style.display = 'block';
+                return;
+            }
+
+            // Build standings table
+            const html = `
+                <table class="standings-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 25px;">מקום</th>
+                            <th>נבחרת</th>
+                            <th>משחקים</th>
+                            <th>ניצחונות</th>
+                            <th>תיקו</th>
+                            <th>הפסדים</th>
+                            <th>שערים</th>
+                            <th>נקודות</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(groupStage.table || []).map(team => `
+                            <tr>
+                                <td class="standings-rank">${team.position}</td>
+                                <td>${team.team.name}</td>
+                                <td>${team.playedGames}</td>
+                                <td>${team.won}</td>
+                                <td>${team.draw}</td>
+                                <td>${team.lost}</td>
+                                <td>${team.goalsFor - team.goalsAgainst >= 0 ? '+' : ''}${team.goalsFor - team.goalsAgainst}</td>
+                                <td style="font-weight: bold; color: #1e3c72;">${team.points}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            container.innerHTML = html;
+            section.style.display = 'block';
+        } catch (error) {
+            console.error('Error loading WC standings:', error);
+            container.innerHTML = '<p style="color: #d32f2f;">שגיאה בטעינת טבלת הבתים</p>';
+            section.style.display = 'block';
+        }
+    }
 
     async function loadLeaderboard() {
         try {
@@ -157,9 +267,9 @@
                 const row = `
                     <tr>
                         <td><strong>${userName}</strong></td>
-                        <td>${translations[rawFirst] || rawFirst || "טרם ניחש"}</td>
-                        <td>${translations[rawSecond] || rawSecond || "טרם ניחש"}</td>
-                        <td>${translations[rawScorer] || rawScorer || "טרם ניחש"}</td>
+                        <td>${formatTeamLabel(rawFirst)}</td>
+                        <td>${formatTeamLabel(rawSecond)}</td>
+                        <td>${formatTeamLabel(rawScorer)}</td>
                         <td>${paidBadge}</td>
                     </tr>
                 `;
@@ -202,7 +312,11 @@
         document.getElementById('statsContent').innerHTML = `🔥 הנבחרת הפייבוריטית בקבוצה היא **${translations[favoriteTeam] || favoriteTeam}** (${maxVotes} מנחשים).`;
     }
 
-    loadLeaderboard();
+    async function initializeLeaderboardPage() {
+        await Promise.all([loadWorldCupTeamsForLeaderboard(), loadLeaderboard(), loadWCStandings()]);
+    }
+
+    initializeLeaderboardPage();
 </script>
 </body>
 </html>

@@ -228,14 +228,14 @@
     },
     "group_54p8hv0": {
       "user_wtu7wox": {
-        "updated_at": "2026-06-22T08:51:38.343Z",
+        "updated_at": "2026-06-22T11:45:40.487Z",
         "teams": {
-          "first": "Argentina",
-          "second": "Brazil",
+          "first": "759",
+          "second": "770",
           "third": ""
         },
         "scorers": {
-          "first": "Kane",
+          "first": "alvarez",
           "second": "",
           "third": ""
         }
@@ -243,14 +243,59 @@
     },
     "group_w3l9k13": {
       "user_wtu7wox": {
-        "updated_at": "2026-06-22T08:58:03.273Z",
+        "updated_at": "2026-06-22T11:46:34.735Z",
         "teams": {
-          "first": "Argentina",
-          "second": "France",
+          "first": "818",
+          "second": "825",
           "third": ""
         },
         "scorers": {
-          "first": "",
+          "first": "mbappe",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_vc45csl": {
+      "user_wtu7wox": {
+        "updated_at": "2026-06-22T11:45:49.952Z",
+        "teams": {
+          "first": "825",
+          "second": "825",
+          "third": ""
+        },
+        "scorers": {
+          "first": "lewandowski",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_3irayxh": {
+      "user_wtu7wox": {
+        "updated_at": "2026-06-22T11:46:07.791Z",
+        "teams": {
+          "first": "770",
+          "second": "773",
+          "third": ""
+        },
+        "scorers": {
+          "first": "messi",
+          "second": "",
+          "third": ""
+        }
+      }
+    },
+    "group_nsgxsa5": {
+      "user_wtu7wox": {
+        "updated_at": "2026-06-22T11:46:23.828Z",
+        "teams": {
+          "first": "791",
+          "second": "799",
+          "third": ""
+        },
+        "scorers": {
+          "first": "bellingham",
           "second": "",
           "third": ""
         }

@@ -18,3 +18,7 @@
 1. התקן תלויות: `npm install`
 2. הרץ את השרת: `node server.js`
 3. פתח בדפדפן: `http://localhost:3000`
+
+https://www.football-data.org/
+9358.700@gmail.com
+Your API token: 51910283b0964f4a9ef4be0ced66c701
