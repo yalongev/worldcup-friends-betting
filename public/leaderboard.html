@@ -103,7 +103,23 @@
         "Argentina": "ארגנטינה 🇦🇷", "Brazil": "ברזיל 🇧🇷", "France": "צרפת 🇫🇷", "Germany": "גרמניה 🇩🇪",
         "Mbappe": "קיליאן אמבפה 🇫🇷", "Messi": "ליונל מסי 🇦🇷", "Kane": "הארי קיין 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Ronaldo": "כריסטיאנו רונלדו 🇵🇹"
     };
-    const teamLabelMap = { ...translations };
+    const teamLabelMap = {
+        ...translations,
+        // Top scorers ids saved by bet form.
+        mbappe: "קיליאן אמבפה (צרפת)",
+        haaland: "ארלינג הולאנד (נורווגיה)",
+        vinicius: "ויניסיוס ג'וניור (ברזיל)",
+        bellingham: "ג'וד בלינגהאם (אנגליה)",
+        kane: "הארי קיין (אנגליה)",
+        messi: "לאונל מסי (ארגנטינה)",
+        ronaldo: "כריסטיאנו רונאלדו (פורטוגל)",
+        yamal: "לאמין ימאל (ספרד)",
+        musiala: "ג'מאל מוסיאלה (גרמניה)",
+        martinez: "לאוטרו מרטינז (ארגנטינה)",
+        lewandowski: "רוברט לבנדובסקי (פולין)",
+        alvarez: "חוליאן אלברז (ארגנטינה)",
+        other: "שחקן אחר"
+    };
 
     async function loadWorldCupTeamsForLeaderboard() {
         try {
@@ -116,9 +132,14 @@
 
             (data.teams || []).forEach(team => {
                 const label = team.tla ? `${team.name} (${team.tla})` : team.name;
+                // Support predictions saved either by team name or numeric team id.
+                teamLabelMap[String(team.id)] = label;
                 teamLabelMap[team.name] = label;
                 if (team.shortName) {
                     teamLabelMap[team.shortName] = label;
+                }
+                if (team.tla) {
+                    teamLabelMap[team.tla] = label;
                 }
             });
         } catch (error) {
@@ -128,7 +149,9 @@
 
     function formatTeamLabel(teamKey) {
         if (!teamKey) return 'טרם ניחש';
-        return teamLabelMap[teamKey] || teamKey;
+        const normalizedKey = String(teamKey);
+        const lowerKey = normalizedKey.toLowerCase();
+        return teamLabelMap[normalizedKey] || teamLabelMap[lowerKey] || teamLabelMap[teamKey] || teamKey;
     }
 
     async function loadWCStandings() {
@@ -309,11 +332,12 @@
         teams.forEach(team => {
             if (teamCounts[team] > maxVotes) { maxVotes = teamCounts[team]; favoriteTeam = team; }
         });
-        document.getElementById('statsContent').innerHTML = `🔥 הנבחרת הפייבוריטית בקבוצה היא **${translations[favoriteTeam] || favoriteTeam}** (${maxVotes} מנחשים).`;
+        document.getElementById('statsContent').innerHTML = `🔥 הנבחרת הפייבוריטית בקבוצה היא **${formatTeamLabel(favoriteTeam)}** (${maxVotes} מנחשים).`;
     }
 
     async function initializeLeaderboardPage() {
-        await Promise.all([loadWorldCupTeamsForLeaderboard(), loadLeaderboard(), loadWCStandings()]);
+        await loadWorldCupTeamsForLeaderboard();
+        await Promise.all([loadLeaderboard(), loadWCStandings()]);
     }
 
     initializeLeaderboardPage();
