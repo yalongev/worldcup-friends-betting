@@ -37,3 +37,8 @@ Yalon11
 mongodb+srv://yalon:Yalon11@cluster0.kyrptw6.mongodb.net/?appName=Cluster0
 
 https://render.com/
+
+Keep worldcup-friends-betting Awake :)
+https://console.cron-job.org/
+9358.700@gmail.com
+6PcmJ&t,cA?r4eL
