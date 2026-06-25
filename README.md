@@ -16,8 +16,9 @@
 
 ## 💻 הרצה מקומית
 1. התקן תלויות: `npm install`
-2. הרץ את השרת: `node server.js`
-3. פתח בדפדפן: `http://localhost:3000`
+2. צור קובץ `.env` לפי `.env.example` והכנס ערכים אמיתיים
+3. הרץ את השרת: `node server.js`
+4. פתח בדפדפן: `http://localhost:3000`
 
 https://www.football-data.org/
 9358.700@gmail.com
@@ -37,8 +38,3 @@ Yalon11
 mongodb+srv://yalon:Yalon11@cluster0.kyrptw6.mongodb.net/?appName=Cluster0
 
 https://render.com/
-
-Keep worldcup-friends-betting Awake :)
-https://console.cron-job.org/
-9358.700@gmail.com
-6PcmJ&t,cA?r4eL

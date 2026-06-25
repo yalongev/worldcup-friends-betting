@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,7 +12,20 @@ const DB_FILE = path.join(__dirname, 'database.json');
 const MONGO_URI = process.env.MONGO_URI;
 let db = null;
 const FOOTBALL_DATA_API = 'https://api.football-data.org/v4';
-const FOOTBALL_DATA_TOKEN = process.env.FOOTBALL_DATA_TOKEN || '51910283b0964f4a9ef4be0ced66c701';
+const FOOTBALL_DATA_TOKEN = process.env.FOOTBALL_DATA_TOKEN;
+const SUPER_ADMIN_PASSWORD = process.env.SUPER_ADMIN_PASSWORD;
+
+function ensureFootballTokenConfigured(res) {
+    if (!FOOTBALL_DATA_TOKEN) {
+        res.status(503).json({
+            success: false,
+            message: 'Football data token is not configured on the server'
+        });
+        return false;
+    }
+
+    return true;
+}
 
 async function initDB() {
     if (MONGO_URI) {
@@ -143,6 +157,10 @@ app.post('/api/groups/create', async (req, res) => {
 // API: קבלת רשימת נבחרות לפי קוד תחרות
 app.get('/api/teams/:competitionCode', async (req, res) => {
     const competitionCode = String(req.params.competitionCode || 'WC').toUpperCase();
+
+    if (!ensureFootballTokenConfigured(res)) {
+        return;
+    }
 
     try {
         const apiRes = await fetch(`${FOOTBALL_DATA_API}/competitions/${competitionCode}/teams`, {
@@ -448,6 +466,10 @@ app.get('/api/top-scorers-candidates', (req, res) => {
 });
 
 app.get('/api/wc-standings', async (req, res) => {
+    if (!ensureFootballTokenConfigured(res)) {
+        return;
+    }
+
     try {
         const apiRes = await fetch(`${FOOTBALL_DATA_API}/competitions/WC/standings`, {
             headers: {
@@ -671,12 +693,16 @@ app.post('/api/groups/join', async (req, res) => {
     res.json({ success: true, userId: userId, name: cleanedName });
 });
 
-// סיסמת מנהל המערכת הראשי (Super Admin)
-const SUPER_ADMIN_PASSWORD = "1696";
-
 // API: שליפת סטטיסטיקות על ללוח הבקרה של מנהל המערכת
 app.post('/api/super-admin/stats', (req, res) => {
     const { password } = req.body;
+
+    if (!SUPER_ADMIN_PASSWORD) {
+        return res.status(503).json({
+            success: false,
+            message: "Super admin password is not configured on the server"
+        });
+    }
 
     // בדיקת אבטחה: אם הסיסמה שגויה, חוסמים מיד
     if (password !== SUPER_ADMIN_PASSWORD) {
