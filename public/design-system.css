@@ -183,3 +183,138 @@ th {
         gap: var(--space-1) !important;
     }
 }
+
+body.stage4-pending > :not(.stage4-overlay) {
+    opacity: 0;
+    transform: translateY(12px) scale(0.995);
+}
+
+body.stage4-ready > :not(.stage4-overlay) {
+    animation: stage4PageReveal 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.stage4-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 20% 15%, rgba(240, 166, 58, 0.24), transparent 36%),
+        radial-gradient(circle at 84% 8%, rgba(229, 75, 47, 0.2), transparent 38%),
+        linear-gradient(155deg, #050c16 10%, #0b1625 58%, #13283c 100%);
+    opacity: 0;
+    transform: scale(1.03);
+    transition: opacity 220ms cubic-bezier(0.22, 1, 0.36, 1), transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+}
+
+.stage4-overlay.is-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.stage4-overlay.is-exiting {
+    opacity: 0;
+    transform: scale(0.985);
+}
+
+.stage4-overlay__orb {
+    position: absolute;
+    width: 40vmax;
+    height: 40vmax;
+    border-radius: 50%;
+    filter: blur(12px);
+    opacity: 0.35;
+    animation: stage4Float 1.8s ease-in-out infinite alternate;
+}
+
+.stage4-overlay__orb--left {
+    left: -10vmax;
+    bottom: -14vmax;
+    background: radial-gradient(circle, rgba(240, 166, 58, 0.92) 0%, rgba(240, 166, 58, 0.1) 66%, transparent 74%);
+}
+
+.stage4-overlay__orb--right {
+    right: -12vmax;
+    top: -14vmax;
+    background: radial-gradient(circle, rgba(229, 75, 47, 0.9) 0%, rgba(229, 75, 47, 0.08) 64%, transparent 72%);
+    animation-delay: 160ms;
+}
+
+.stage4-overlay__content {
+    position: relative;
+    text-align: center;
+    color: #eff6ff;
+    padding: 18px 24px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(8, 22, 36, 0.42);
+    backdrop-filter: blur(6px);
+}
+
+.stage4-overlay__eyebrow {
+    margin: 0 0 6px;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 2.4px;
+    font-size: 11px;
+    opacity: 0.82;
+}
+
+.stage4-overlay__title {
+    margin: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: clamp(34px, 6.8vw, 64px);
+    line-height: 1;
+    letter-spacing: 0.8px;
+    color: #fff7eb;
+}
+
+.stage4-overlay__subtitle {
+    margin: 10px 0 0;
+    font-size: 14px;
+    letter-spacing: 0.25px;
+    color: rgba(236, 245, 255, 0.94);
+}
+
+.stage4-overlay--exit {
+    background: rgba(5, 12, 22, 0.22);
+    backdrop-filter: blur(1.5px);
+}
+
+.stage4-overlay--exit::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(240, 166, 58, 0.12), rgba(229, 75, 47, 0.12));
+}
+
+@keyframes stage4PageReveal {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes stage4Float {
+    from {
+        transform: translateY(0) scale(1);
+    }
+    to {
+        transform: translateY(-16px) scale(1.03);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stage4-overlay,
+    .stage4-overlay__orb,
+    body.stage4-ready > :not(.stage4-overlay) {
+        animation: none !important;
+        transition: none !important;
+    }
+}

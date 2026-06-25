@@ -144,7 +144,7 @@ Checklist:
 - [ ] Add migration strategy from localStorage users to OAuth users.
 
 ### Stage 4: Entrance Experience
-Status: Not started
+Status: Complete
 
 Goals:
 - Add branded splash overlay on app entry and major section switches.
@@ -155,9 +155,9 @@ Definition of Done:
 - No visual jank during transitions.
 
 Checklist:
-- [ ] Add overlay component and animation states.
-- [ ] Trigger on initial load and section navigation.
-- [ ] Tune durations and easing for consistent feel.
+- [x] Add overlay component and animation states.
+- [x] Trigger on initial load and section navigation.
+- [x] Tune durations and easing for consistent feel.
 
 ### Stage 5: My Groups Directory
 Status: Not started
@@ -264,7 +264,7 @@ Checklist:
 - [x] Stage 1 complete
 - [x] Stage 2 complete
 - [ ] Stage 3 complete
-- [ ] Stage 4 complete
+- [x] Stage 4 complete
 - [ ] Stage 5 complete
 - [ ] Stage 6 complete
 - [ ] Stage 7 complete
