@@ -59,6 +59,73 @@ function writeDB(data) {
     fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
 }
 
+function getActingUserId(body = {}) {
+    return body.adminUserId || body.currentUserId || body.actorUserId || null;
+}
+
+function isValidLockMode(lockMode) {
+    return lockMode === 'spectator' || lockMode === 'remove';
+}
+
+function toNumericScore(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function buildGroupSummary(group, currentUserId) {
+    const members = group && group.members ? group.members : {};
+    const memberIds = Object.keys(members);
+    const entryFee = Number(group && group.entry_fee);
+    const safeEntryFee = Number.isFinite(entryFee) && entryFee > 0 ? entryFee : 0;
+
+    const ranked = memberIds.map((userId) => {
+        const member = members[userId] || {};
+        const score = toNumericScore(member.total_score);
+        return {
+            userId,
+            userName: member.userName || 'Participant',
+            hasPaid: !!member.has_paid,
+            score
+        };
+    }).sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.userName.localeCompare(b.userName, 'en', { sensitivity: 'base' });
+    });
+
+    const paidCount = ranked.filter((row) => row.hasPaid).length;
+    let previousScore = null;
+    let visibleRank = 0;
+    const rankedWithPlacement = ranked.map((row, index) => {
+        if (row.score !== previousScore) {
+            visibleRank = index + 1;
+            previousScore = row.score;
+        }
+        return {
+            ...row,
+            rank: visibleRank
+        };
+    });
+
+    const currentUserRow = rankedWithPlacement.find((row) => row.userId === currentUserId) || null;
+
+    return {
+        totalMembers: rankedWithPlacement.length,
+        paidCount,
+        totalPot: paidCount * safeEntryFee,
+        leader: rankedWithPlacement[0] ? {
+            userId: rankedWithPlacement[0].userId,
+            userName: rankedWithPlacement[0].userName,
+            score: rankedWithPlacement[0].score
+        } : null,
+        currentUser: currentUserRow ? {
+            userId: currentUserRow.userId,
+            userName: currentUserRow.userName,
+            rank: currentUserRow.rank,
+            score: currentUserRow.score
+        } : null
+    };
+}
+
 app.post('/api/groups/create', async (req, res) => {
     const { groupName, creatorName, tournamentStage, userId } = req.body;
 
@@ -202,10 +269,32 @@ app.get('/api/teams/:competitionCode', async (req, res) => {
 app.post('/api/groups/:id/lock', async (req, res) => {
     const groupId = req.params.id;
     const { lockMode } = req.body; // 'spectator' או 'remove'
+    const adminUserId = getActingUserId(req.body);
+
+    if (!adminUserId) {
+        return res.status(400).json({ success: false, message: "חסר מזהה מנהל לצורך הרשאה" });
+    }
+
+    if (!isValidLockMode(lockMode)) {
+        return res.status(400).json({ success: false, message: "מצב נעילה לא תקין" });
+    }
 
     // מצב ענן: עדכון במונגו (עם fallback ל-JSON במקרה תקלה)
     if (db) {
         try {
+            const mongoGroup = await db.collection('groups').findOne(
+                { _id: groupId },
+                { projection: { admin_id: 1 } }
+            );
+
+            if (!mongoGroup) {
+                return res.status(404).json({ success: false, message: "הקבוצה לא קיימת" });
+            }
+
+            if (mongoGroup.admin_id !== adminUserId) {
+                return res.status(403).json({ success: false, message: "אין לך הרשאה לנעול הימורים בקבוצה זו" });
+            }
+
             const mongoRes = await db.collection('groups').updateOne(
                 { _id: groupId },
                 {
@@ -240,6 +329,10 @@ app.post('/api/groups/:id/lock', async (req, res) => {
         return res.status(404).json({ success: false, message: "הקבוצה לא קיימת" });
     }
 
+    if (fileDB.groups[groupId].admin_id !== adminUserId) {
+        return res.status(403).json({ success: false, message: "אין לך הרשאה לנעול הימורים בקבוצה זו" });
+    }
+
     // עדכון מצב הקבוצה ב-DB
     fileDB.groups[groupId].betsLocked = true;
     fileDB.groups[groupId].unpaidLockMode = lockMode; // שמירת ההחלטה: צופים או הסרה
@@ -251,10 +344,32 @@ app.post('/api/groups/:id/lock', async (req, res) => {
 // API: עדכון סטטוס תשלום של חבר קבוצה על ידי המנהל
 app.post('/api/groups/toggle-payment', async (req, res) => {
     const { groupId, userId, hasPaid } = req.body;
+    const adminUserId = getActingUserId(req.body);
+
+    if (!adminUserId) {
+        return res.status(400).json({ success: false, message: "חסר מזהה מנהל לצורך הרשאה" });
+    }
 
     // מצב ענן: עדכון במונגו (עם fallback ל-JSON במקרה תקלה)
     if (db) {
         try {
+            const mongoGroup = await db.collection('groups').findOne(
+                { _id: groupId },
+                { projection: { admin_id: 1, [`members.${userId}`]: 1 } }
+            );
+
+            if (!mongoGroup) {
+                return res.status(404).json({ success: false, message: "קבוצה או משתמש לא נמצאו" });
+            }
+
+            if (mongoGroup.admin_id !== adminUserId) {
+                return res.status(403).json({ success: false, message: "אין לך הרשאה לעדכן תשלומים בקבוצה זו" });
+            }
+
+            if (!mongoGroup.members || !mongoGroup.members[userId]) {
+                return res.status(404).json({ success: false, message: "קבוצה או משתמש לא נמצאו" });
+            }
+
             const mongoRes = await db.collection('groups').updateOne(
                 { _id: groupId, [`members.${userId}`]: { $exists: true } },
                 {
@@ -280,6 +395,10 @@ app.post('/api/groups/toggle-payment', async (req, res) => {
 
     const fileDB = readDB();
 
+    if (fileDB.groups[groupId] && fileDB.groups[groupId].admin_id !== adminUserId) {
+        return res.status(403).json({ success: false, message: "אין לך הרשאה לעדכן תשלומים בקבוצה זו" });
+    }
+
     if (fileDB.groups[groupId] && fileDB.groups[groupId].members[userId]) {
         // עדכון הסטטוס ב-DB
         fileDB.groups[groupId].members[userId].has_paid = hasPaid;
@@ -293,11 +412,29 @@ app.post('/api/groups/toggle-payment', async (req, res) => {
 app.post('/api/groups/:id/update-entry-fee', async (req, res) => {
     const groupId = req.params.id;
     const { entryFee } = req.body;
+    const adminUserId = getActingUserId(req.body);
     const numericEntryFee = Number(entryFee) || 0;
+
+    if (!adminUserId) {
+        return res.status(400).json({ success: false, message: "חסר מזהה מנהל לצורך הרשאה" });
+    }
 
     // מצב ענן: עדכון במונגו (עם fallback ל-JSON במקרה תקלה)
     if (db) {
         try {
+            const mongoGroup = await db.collection('groups').findOne(
+                { _id: groupId },
+                { projection: { admin_id: 1 } }
+            );
+
+            if (!mongoGroup) {
+                return res.status(404).json({ success: false, message: "הקבוצה לא נמצאה" });
+            }
+
+            if (mongoGroup.admin_id !== adminUserId) {
+                return res.status(403).json({ success: false, message: "אין לך הרשאה לעדכן עלות כניסה בקבוצה זו" });
+            }
+
             const mongoRes = await db.collection('groups').updateOne(
                 { _id: groupId },
                 {
@@ -330,6 +467,10 @@ app.post('/api/groups/:id/update-entry-fee', async (req, res) => {
         return res.status(404).json({ success: false, message: "הקבוצה לא נמצאה" });
     }
 
+    if (fileDB.groups[groupId].admin_id !== adminUserId) {
+        return res.status(403).json({ success: false, message: "אין לך הרשאה לעדכן עלות כניסה בקבוצה זו" });
+    }
+
     fileDB.groups[groupId].entry_fee = numericEntryFee;
     writeDB(fileDB);
     res.json({ success: true, message: "עלות ההשתתפות עודכנה" });
@@ -338,11 +479,29 @@ app.post('/api/groups/:id/update-entry-fee', async (req, res) => {
 app.post('/api/groups/:id/update-paybox-link', async (req, res) => {
     const groupId = req.params.id;
     const { payboxLink } = req.body;
+    const adminUserId = getActingUserId(req.body);
     const cleanedPayboxLink = payboxLink ? String(payboxLink).trim() : "";
+
+    if (!adminUserId) {
+        return res.status(400).json({ success: false, message: "חסר מזהה מנהל לצורך הרשאה" });
+    }
 
     // מצב ענן: עדכון במונגו (עם fallback ל-JSON במקרה תקלה)
     if (db) {
         try {
+            const mongoGroup = await db.collection('groups').findOne(
+                { _id: groupId },
+                { projection: { admin_id: 1 } }
+            );
+
+            if (!mongoGroup) {
+                return res.status(404).json({ success: false, message: "הקבוצה לא נמצאה" });
+            }
+
+            if (mongoGroup.admin_id !== adminUserId) {
+                return res.status(403).json({ success: false, message: "אין לך הרשאה לעדכן קישור PayBox בקבוצה זו" });
+            }
+
             const mongoRes = await db.collection('groups').updateOne(
                 { _id: groupId },
                 {
@@ -375,6 +534,10 @@ app.post('/api/groups/:id/update-paybox-link', async (req, res) => {
         return res.status(404).json({ success: false, message: "הקבוצה לא נמצאה" });
     }
 
+    if (fileDB.groups[groupId].admin_id !== adminUserId) {
+        return res.status(403).json({ success: false, message: "אין לך הרשאה לעדכן קישור PayBox בקבוצה זו" });
+    }
+
     fileDB.groups[groupId].paybox_link = cleanedPayboxLink;
     writeDB(fileDB);
     res.json({ success: true, message: "קישור PayBox עודכן" });
@@ -389,11 +552,15 @@ app.post('/api/predictions/save', async (req, res) => {
         try {
             const mongoGroup = await db.collection('groups').findOne(
                 { _id: groupId },
-                { projection: { status: 1 } }
+                { projection: { status: 1, betsLocked: 1, [`members.${userId}`]: 1 } }
             );
 
-            if (!mongoGroup || mongoGroup.status !== 'voting_open') {
+            if (!mongoGroup || mongoGroup.status !== 'voting_open' || mongoGroup.betsLocked) {
                 return res.status(400).json({ success: false, message: "ההצבעה נעולה או שהקבוצה לא קיימת" });
+            }
+
+            if (!mongoGroup.members || !mongoGroup.members[userId]) {
+                return res.status(403).json({ success: false, message: "אין הרשאה לשמור ניחוש עבור משתמש זה בקבוצה" });
             }
 
             await db.collection('predictions').updateOne(
@@ -412,7 +579,7 @@ app.post('/api/predictions/save', async (req, res) => {
 
             // תאימות זמנית: שיקוף ל-JSON
             const fileDB = readDB();
-            if (fileDB.groups[groupId] && fileDB.groups[groupId].status === 'voting_open') {
+            if (fileDB.groups[groupId] && fileDB.groups[groupId].status === 'voting_open' && !fileDB.groups[groupId].betsLocked) {
                 if (!fileDB.predictions[groupId]) fileDB.predictions[groupId] = {};
                 fileDB.predictions[groupId][userId] = {
                     updated_at: nowIso,
@@ -430,8 +597,12 @@ app.post('/api/predictions/save', async (req, res) => {
 
     const fileDB = readDB();
 
-    if (!fileDB.groups[groupId] || fileDB.groups[groupId].status !== 'voting_open') {
+    if (!fileDB.groups[groupId] || fileDB.groups[groupId].status !== 'voting_open' || fileDB.groups[groupId].betsLocked) {
         return res.status(400).json({ success: false, message: "ההצבעה נעולה או שהקבוצה לא קיימת" });
+    }
+
+    if (!fileDB.groups[groupId].members || !fileDB.groups[groupId].members[userId]) {
+        return res.status(403).json({ success: false, message: "אין הרשאה לשמור ניחוש עבור משתמש זה בקבוצה" });
     }
 
     if (!fileDB.predictions[groupId]) fileDB.predictions[groupId] = {};
@@ -495,6 +666,64 @@ app.get('/api/wc-standings', async (req, res) => {
             message: 'שגיאה בשליפת טבלת הבתים'
         });
     }
+});
+
+app.get('/api/groups/:id/summary', async (req, res) => {
+    const groupId = req.params.id;
+    const currentUserId = String(req.query.userId || '').trim() || null;
+
+    if (db) {
+        try {
+            const mongoGroup = await db.collection('groups').findOne({ _id: groupId });
+            if (mongoGroup) {
+                const group = JSON.parse(JSON.stringify(mongoGroup));
+                delete group._id;
+
+                const memberIds = Object.keys(group.members || {});
+                if (memberIds.length > 0) {
+                    const users = await db.collection('users').find({ _id: { $in: memberIds } }).toArray();
+                    const usersById = users.reduce((acc, user) => {
+                        acc[user._id] = user;
+                        return acc;
+                    }, {});
+
+                    memberIds.forEach((userId) => {
+                        if (!group.members[userId]) return;
+                        if (!group.members[userId].userName) {
+                            group.members[userId].userName = usersById[userId] ? usersById[userId].name : 'Participant';
+                        }
+                    });
+                }
+
+                return res.json({
+                    success: true,
+                    summary: buildGroupSummary(group, currentUserId)
+                });
+            }
+        } catch (error) {
+            console.error('Mongo group summary failed, falling back to JSON:', error);
+        }
+    }
+
+    const fileDB = readDB();
+    const group = fileDB.groups[groupId];
+
+    if (!group) {
+        return res.status(404).json({ success: false, message: 'הקבוצה לא קיימת' });
+    }
+
+    const groupClone = JSON.parse(JSON.stringify(group));
+    const members = groupClone.members || {};
+    Object.keys(members).forEach((userId) => {
+        if (!members[userId].userName && fileDB.users[userId]) {
+            members[userId].userName = fileDB.users[userId].name;
+        }
+    });
+
+    return res.json({
+        success: true,
+        summary: buildGroupSummary(groupClone, currentUserId)
+    });
 });
 
 // API: קבלת פרטי קבוצה, כולל שמות חברים, הניחושים שלהם ושם המנהל

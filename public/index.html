@@ -23,6 +23,13 @@
         /* רשימת חברים קטנה */
         .members-preview { font-size: 13px; color: #555; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #eaeaea; margin-bottom: 12px; }
         .member-tag { display: inline-block; background: #e1f5fe; color: #0288d1; padding: 2px 6px; border-radius: 4px; margin-left: 5px; font-size: 12px; font-weight: bold; }
+
+        .summary-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+        .metric { background: #fff; border: 1px solid #e4e8ef; border-radius: 8px; padding: 8px; text-align: center; }
+        .metric-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+        .metric-value { font-size: 15px; font-weight: bold; color: #1e3c72; }
+        .state-loading { color: #6b7280; font-size: 13px; }
+        .state-error { color: #b42318; font-size: 13px; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 8px; }
         
         .action-btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: nowrap; overflow-x: auto; align-items: center; }
         .action-btns::-webkit-scrollbar { height: 6px; }
@@ -87,7 +94,12 @@
                     <span class="group-name" id="name-${groupId}">טוען קבוצה...</span>
                     <span style="font-size: 12px; color: #888;">שלום, ${registeredName}</span>
                 </div>
-                <div class="members-preview" id="members-${groupId}">🏃‍♂️ טוען חברים בקבוצה...</div>
+                <div class="summary-metrics" id="metrics-${groupId}">
+                    <div class="metric"><div class="metric-label">קופה</div><div class="metric-value">...</div></div>
+                    <div class="metric"><div class="metric-label">מוביל</div><div class="metric-value">...</div></div>
+                    <div class="metric"><div class="metric-label">דירוג שלי</div><div class="metric-value">...</div></div>
+                </div>
+                <div class="members-preview state-loading" id="members-${groupId}">טוען סיכום קבוצה...</div>
                 <div class="action-btns" id="actions-${groupId}">
                     <a href="/bet.html?groupId=${groupId}" class="btn btn-bet">הימורים שלי</a>
                     <a href="/leaderboard.html?groupId=${groupId}" class="btn btn-lead">לוח תוצאות</a>
@@ -156,15 +168,53 @@
                             }
                         }
 
-                        // 4. חילוץ כמות המשתתפים שביצעו הימורים
-                        const predictionsBlock = data.predictions || {};
-                        const userIdsInGroup = Object.keys(predictionsBlock);
-                        if (userIdsInGroup.length === 0) {
-                            document.getElementById(`members-${groupId}`).innerHTML = `🌱 אתה המשתתף הראשון בקבוצה! שלח את הלינק לחברים.`;
-                        } else {
-                            const lastUsersCount = userIdsInGroup.length;
-                            document.getElementById(`members-${groupId}`).innerHTML = `👥 בקבוצה זו יש כבר **${lastUsersCount}** משתתפים פעילים שהזינו ניחוש!`;
-                        }
+                        fetch(`/api/groups/${groupId}/summary?userId=${encodeURIComponent(currentUserId)}`)
+                            .then((summaryRes) => summaryRes.json())
+                            .then((summaryPayload) => {
+                                const metricsEl = document.getElementById(`metrics-${groupId}`);
+                                const infoEl = document.getElementById(`members-${groupId}`);
+
+                                if (!summaryPayload || !summaryPayload.success || !summaryPayload.summary) {
+                                    if (infoEl) {
+                                        infoEl.className = 'members-preview state-error';
+                                        infoEl.innerText = 'לא ניתן לטעון מדדי קבוצה כרגע.';
+                                    }
+                                    return;
+                                }
+
+                                const summary = summaryPayload.summary;
+                                const leaderName = summary.leader ? summary.leader.userName : 'אין עדיין';
+                                const rankText = summary.currentUser ? `#${summary.currentUser.rank}` : 'לא מדורג';
+
+                                if (metricsEl) {
+                                    metricsEl.innerHTML = `
+                                        <div class="metric">
+                                            <div class="metric-label">קופה כוללת</div>
+                                            <div class="metric-value">₪${summary.totalPot}</div>
+                                        </div>
+                                        <div class="metric">
+                                            <div class="metric-label">מוביל נוכחי</div>
+                                            <div class="metric-value">${leaderName}</div>
+                                        </div>
+                                        <div class="metric">
+                                            <div class="metric-label">הדירוג שלי</div>
+                                            <div class="metric-value">${rankText}</div>
+                                        </div>
+                                    `;
+                                }
+
+                                if (infoEl) {
+                                    infoEl.className = 'members-preview';
+                                    infoEl.innerText = `👥 משתתפים: ${summary.totalMembers} | משלמים: ${summary.paidCount}`;
+                                }
+                            })
+                            .catch(() => {
+                                const infoEl = document.getElementById(`members-${groupId}`);
+                                if (infoEl) {
+                                    infoEl.className = 'members-preview state-error';
+                                    infoEl.innerText = 'לא ניתן לטעון מדדי קבוצה כרגע.';
+                                }
+                            });
                     }
                 });
         }

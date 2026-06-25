@@ -160,7 +160,7 @@ Checklist:
 - [x] Tune durations and easing for consistent feel.
 
 ### Stage 5: My Groups Directory
-Status: Not started
+Status: Complete
 
 Goals:
 - Build scannable group cards with key metrics.
@@ -171,9 +171,9 @@ Definition of Done:
 - Each card shows current user rank in that group.
 
 Checklist:
-- [ ] Add group summary API shape if missing.
-- [ ] Render metric-first card layout.
-- [ ] Add empty, loading, and error states.
+- [x] Add group summary API shape if missing.
+- [x] Render metric-first card layout.
+- [x] Add empty, loading, and error states.
 
 ### Stage 6: Group Dashboard Upgrade
 Status: Not started
@@ -265,7 +265,7 @@ Checklist:
 - [x] Stage 2 complete
 - [ ] Stage 3 complete
 - [x] Stage 4 complete
-- [ ] Stage 5 complete
+- [x] Stage 5 complete
 - [ ] Stage 6 complete
 - [ ] Stage 7 complete
 - [ ] Stage 8 complete
