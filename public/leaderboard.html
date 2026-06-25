@@ -21,6 +21,26 @@
 
         .stats-box { background: #e8f4fd; border: 1px solid #bee5eb; padding: 15px; border-radius: 8px; margin-bottom: 25px; }
         .stats-title { font-weight: bold; color: #0c5460; margin-bottom: 5px; }
+
+        .lock-banner { border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-weight: 700; display: none; }
+        .lock-banner.active { display: block; background: #ecfdf3; border: 1px solid #86efac; color: #14532d; }
+        .lock-banner.locked { display: block; background: #fff1f2; border: 1px solid #fecdd3; color: #9f1239; }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .dash-card { background: #ffffff; border: 1px solid #dbe7f3; border-radius: 10px; padding: 12px; }
+        .dash-title { margin: 0 0 8px; font-weight: bold; color: #1e3c72; font-size: 14px; }
+        .status-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+        .status-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+        .status-badge { padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+        .status-badge.active { background: #dbeafe; color: #1e3a8a; }
+        .status-badge.locked { background: #fee2e2; color: #991b1b; }
+        .status-badge.ready { background: #dcfce7; color: #166534; }
+        .status-badge.partial { background: #fef3c7; color: #92400e; }
+        .status-badge.missing { background: #fee2e2; color: #991b1b; }
+        .mini-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .mini-kpi { background: #f8fbff; border: 1px solid #e4edf8; border-radius: 8px; padding: 8px; }
+        .mini-kpi-label { font-size: 11px; color: #6b7280; }
+        .mini-kpi-value { font-size: 15px; font-weight: bold; color: #1e3c72; margin-top: 4px; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
         th, td { padding: 12px; text-align: right; border-bottom: 1px solid #ddd; }
@@ -42,6 +62,11 @@
         .btn-back { background: #6c757d; color: white; }
         .btn-share { background: #25D366; color: white; }
         .btn-share:hover { background: #1ebd59; }
+
+        @media (max-width: 760px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .mini-kpis { grid-template-columns: 1fr 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -54,6 +79,29 @@
 
     <h1 id="groupName">📊 לוח התוצאות</h1>
     <div id="groupSubTitle" class="group-title">טוען נתונים...</div>
+    <div id="lockBanner" class="lock-banner">Loading lock state...</div>
+
+    <div class="dashboard-grid">
+        <div class="dash-card">
+            <p class="dash-title">Match Betting Status</p>
+            <ul id="matchStatusList" class="status-list"></ul>
+        </div>
+        <div class="dash-card">
+            <p class="dash-title">User Betting Status</p>
+            <ul id="userStatusList" class="status-list"></ul>
+        </div>
+    </div>
+
+    <div class="dashboard-grid" style="margin-top: -2px;">
+        <div class="dash-card">
+            <p class="dash-title">Points Analytics</p>
+            <div id="analyticsKpis" class="mini-kpis"></div>
+        </div>
+        <div class="dash-card">
+            <p class="dash-title">Points Distribution</p>
+            <div id="analyticsBands" class="mini-kpis"></div>
+        </div>
+    </div>
 
     <div class="pot-box">
         <div class="pot-item">
@@ -100,6 +148,7 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123";
+    const CURRENT_USER_ID = urlParams.get('userId') || null;
     let globalGroupName = "";
 
     const translations = {
@@ -155,6 +204,98 @@
         const normalizedKey = String(teamKey);
         const lowerKey = normalizedKey.toLowerCase();
         return teamLabelMap[normalizedKey] || teamLabelMap[lowerKey] || teamLabelMap[teamKey] || teamKey;
+    }
+
+    function getSessionUserId() {
+        const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+        return sessions[CURRENT_GROUP_ID] ? sessions[CURRENT_GROUP_ID].userId : null;
+    }
+
+    function renderDashboard(dashboard) {
+        const lockBanner = document.getElementById('lockBanner');
+        const matchStatusList = document.getElementById('matchStatusList');
+        const userStatusList = document.getElementById('userStatusList');
+        const analyticsKpis = document.getElementById('analyticsKpis');
+        const analyticsBands = document.getElementById('analyticsBands');
+
+        if (!dashboard) {
+            if (lockBanner) {
+                lockBanner.className = 'lock-banner locked';
+                lockBanner.innerText = 'Dashboard data is currently unavailable.';
+            }
+            return;
+        }
+
+        if (lockBanner) {
+            lockBanner.className = `lock-banner ${dashboard.lock && dashboard.lock.isLocked ? 'locked' : 'active'}`;
+            lockBanner.innerText = dashboard.lock && dashboard.lock.isLocked
+                ? `Bets are locked. Mode: ${dashboard.lock.mode}`
+                : 'Bets are currently open for updates.';
+        }
+
+        if (matchStatusList) {
+            const matches = dashboard.matches || [];
+            matchStatusList.innerHTML = matches.map((match) => `
+                <li class="status-row">
+                    <span>${match.label}</span>
+                    <span>
+                        <span class="status-badge ${match.status}">${match.status}</span>
+                        <span style="font-size:11px; color:#64748b; margin-inline-start:6px;">${match.submittedCount}/${match.submittedCount + match.missingCount}</span>
+                    </span>
+                </li>
+            `).join('');
+        }
+
+        if (userStatusList) {
+            const userStatuses = (dashboard.userBettingStatus || []).slice(0, 6);
+            userStatusList.innerHTML = userStatuses.map((user) => `
+                <li class="status-row">
+                    <span>${user.userName}</span>
+                    <span>
+                        <span class="status-badge ${user.bettingStatus}">${user.bettingStatus}</span>
+                        <span style="font-size:11px; color:#64748b; margin-inline-start:6px;">${user.submittedCount}/3</span>
+                    </span>
+                </li>
+            `).join('');
+        }
+
+        if (analyticsKpis) {
+            const analytics = dashboard.analytics || {};
+            analyticsKpis.innerHTML = `
+                <div class="mini-kpi"><div class="mini-kpi-label">Average</div><div class="mini-kpi-value">${analytics.averageScore || 0}</div></div>
+                <div class="mini-kpi"><div class="mini-kpi-label">Highest</div><div class="mini-kpi-value">${analytics.highestScore || 0}</div></div>
+                <div class="mini-kpi"><div class="mini-kpi-label">Lowest</div><div class="mini-kpi-value">${analytics.lowestScore || 0}</div></div>
+                <div class="mini-kpi"><div class="mini-kpi-label">Spread</div><div class="mini-kpi-value">${analytics.spread || 0}</div></div>
+            `;
+        }
+
+        if (analyticsBands) {
+            const bands = (dashboard.analytics && dashboard.analytics.scoreBands) || {};
+            analyticsBands.innerHTML = `
+                <div class="mini-kpi"><div class="mini-kpi-label">0-9 pts</div><div class="mini-kpi-value">${bands.zero_to_nine || 0}</div></div>
+                <div class="mini-kpi"><div class="mini-kpi-label">10-19 pts</div><div class="mini-kpi-value">${bands.ten_to_nineteen || 0}</div></div>
+                <div class="mini-kpi"><div class="mini-kpi-label">20+ pts</div><div class="mini-kpi-value">${bands.twenty_plus || 0}</div></div>
+                <div class="mini-kpi"><div class="mini-kpi-label">Members</div><div class="mini-kpi-value">${(dashboard.analytics && dashboard.analytics.totalMembers) || 0}</div></div>
+            `;
+        }
+    }
+
+    async function loadGroupDashboard() {
+        const sessionUserId = getSessionUserId();
+        const effectiveUserId = CURRENT_USER_ID || sessionUserId || '';
+
+        try {
+            const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/dashboard?userId=${encodeURIComponent(effectiveUserId)}`);
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                renderDashboard(null);
+                return;
+            }
+            renderDashboard(data.dashboard);
+        } catch (error) {
+            console.error('Error loading group dashboard:', error);
+            renderDashboard(null);
+        }
     }
 
     async function loadWCStandings() {
@@ -340,7 +481,7 @@
 
     async function initializeLeaderboardPage() {
         await loadWorldCupTeamsForLeaderboard();
-        await Promise.all([loadLeaderboard(), loadWCStandings()]);
+        await Promise.all([loadLeaderboard(), loadWCStandings(), loadGroupDashboard()]);
     }
 
     initializeLeaderboardPage();

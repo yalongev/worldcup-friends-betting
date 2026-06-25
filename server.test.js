@@ -89,6 +89,38 @@ describe('Group & Betting API Tests', () => {
         expect(res.body.success).toBe(false);
     });
 
+    it('GET /api/groups/:id/dashboard - should return stage 6 dashboard data', async () => {
+        const db = readFixtureDb();
+        db.predictions.group_secure = {
+            admin_user: {
+                teams: { first: 'Argentina', second: 'France' },
+                scorers: { first: 'messi' }
+            },
+            member_user: {
+                teams: { first: 'Brazil', second: '' },
+                scorers: { first: '' }
+            }
+        };
+        fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+
+        const res = await request(app).get('/api/groups/group_secure/dashboard?userId=member_user');
+
+        expect(res.statusCode).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.dashboard.lock.isLocked).toBe(false);
+        expect(res.body.dashboard.matches).toHaveLength(3);
+        expect(res.body.dashboard.userBettingStatus).toHaveLength(2);
+        expect(res.body.dashboard.analytics.leaders[0].userId).toBe('admin_user');
+        expect(res.body.dashboard.analytics.currentUser.userId).toBe('member_user');
+    });
+
+    it('GET /api/groups/:id/dashboard - should return 404 for missing group', async () => {
+        const res = await request(app).get('/api/groups/non_existent_id/dashboard?userId=member_user');
+
+        expect(res.statusCode).toBe(404);
+        expect(res.body.success).toBe(false);
+    });
+
     it('GET /api/groups/non_existent_id - should return 404', async () => {
         const res = await request(app).get('/api/groups/non_existent_id');
         expect(res.statusCode).toBe(404);

@@ -176,7 +176,7 @@ Checklist:
 - [x] Add empty, loading, and error states.
 
 ### Stage 6: Group Dashboard Upgrade
-Status: Not started
+Status: In progress
 
 Goals:
 - Expose match-by-match betting status.
@@ -188,9 +188,9 @@ Definition of Done:
 - Users can understand scoring breakdown at a glance.
 
 Checklist:
-- [ ] Add match list with status badges.
-- [ ] Show betting status per user and match.
-- [ ] Add analytics widgets for points and trends.
+- [x] Add match list with status badges.
+- [x] Show betting status per user and match.
+- [x] Add analytics widgets for points and trends.
 
 ### Stage 7: Leaderboard 3-2-1 Reveal
 Status: Not started

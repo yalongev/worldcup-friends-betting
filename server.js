@@ -126,6 +126,121 @@ function buildGroupSummary(group, currentUserId) {
     };
 }
 
+function hasPredictionValue(value) {
+    return value !== undefined && value !== null && String(value).trim() !== '';
+}
+
+function getPredictionForUser(groupPredictions, userId) {
+    if (!groupPredictions || typeof groupPredictions !== 'object') return {};
+    return groupPredictions[userId] || {};
+}
+
+function buildGroupDashboard(group, groupPredictions, currentUserId) {
+    const members = group && group.members ? group.members : {};
+    const memberIds = Object.keys(members);
+    const isLocked = !!group.betsLocked;
+    const lockMode = group.unpaidLockMode || 'spectator';
+
+    const matchDefinitions = [
+        { key: 'champion_pick', label: 'Champion Pick', getter: (p) => p && p.teams && p.teams.first },
+        { key: 'runner_up_pick', label: 'Runner-Up Pick', getter: (p) => p && p.teams && p.teams.second },
+        { key: 'top_scorer_pick', label: 'Top Scorer Pick', getter: (p) => p && p.scorers && p.scorers.first }
+    ];
+
+    const users = memberIds.map((userId) => {
+        const member = members[userId] || {};
+        const prediction = getPredictionForUser(groupPredictions, userId);
+        const submitted = {
+            champion_pick: hasPredictionValue(matchDefinitions[0].getter(prediction)),
+            runner_up_pick: hasPredictionValue(matchDefinitions[1].getter(prediction)),
+            top_scorer_pick: hasPredictionValue(matchDefinitions[2].getter(prediction))
+        };
+        const submittedCount = Object.values(submitted).filter(Boolean).length;
+        const bettingStatus = submittedCount === 3 ? 'ready' : submittedCount === 0 ? 'missing' : 'partial';
+
+        return {
+            userId,
+            userName: member.userName || 'Participant',
+            hasPaid: !!member.has_paid,
+            totalScore: toNumericScore(member.total_score),
+            bettingStatus,
+            submitted,
+            submittedCount
+        };
+    });
+
+    const matches = matchDefinitions.map((definition) => {
+        const submittedCount = users.filter((user) => user.submitted[definition.key]).length;
+        return {
+            key: definition.key,
+            label: definition.label,
+            status: isLocked ? 'locked' : 'active',
+            submittedCount,
+            missingCount: users.length - submittedCount
+        };
+    });
+
+    const scores = users.map((user) => user.totalScore);
+    const totalPoints = scores.reduce((sum, score) => sum + score, 0);
+    const highestScore = scores.length ? Math.max(...scores) : 0;
+    const lowestScore = scores.length ? Math.min(...scores) : 0;
+    const averageScore = scores.length ? Number((totalPoints / scores.length).toFixed(2)) : 0;
+
+    const sortedByScore = [...users].sort((a, b) => {
+        if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
+        return a.userName.localeCompare(b.userName, 'en', { sensitivity: 'base' });
+    });
+
+    const scoreBands = {
+        zero_to_nine: 0,
+        ten_to_nineteen: 0,
+        twenty_plus: 0
+    };
+
+    scores.forEach((score) => {
+        if (score >= 20) scoreBands.twenty_plus += 1;
+        else if (score >= 10) scoreBands.ten_to_nineteen += 1;
+        else scoreBands.zero_to_nine += 1;
+    });
+
+    const currentUser = users.find((user) => user.userId === currentUserId) || null;
+
+    return {
+        lock: {
+            isLocked,
+            mode: lockMode,
+            statusText: isLocked ? `Locked (${lockMode})` : 'Active betting'
+        },
+        matches,
+        userBettingStatus: users.map((user) => ({
+            userId: user.userId,
+            userName: user.userName,
+            bettingStatus: user.bettingStatus,
+            submittedCount: user.submittedCount,
+            hasPaid: user.hasPaid
+        })),
+        analytics: {
+            totalMembers: users.length,
+            averageScore,
+            highestScore,
+            lowestScore,
+            spread: highestScore - lowestScore,
+            scoreBands,
+            leaders: sortedByScore.slice(0, 3).map((user) => ({
+                userId: user.userId,
+                userName: user.userName,
+                totalScore: user.totalScore
+            })),
+            currentUser: currentUser ? {
+                userId: currentUser.userId,
+                userName: currentUser.userName,
+                totalScore: currentUser.totalScore,
+                bettingStatus: currentUser.bettingStatus
+            } : null
+        }
+    };
+}
+
 app.post('/api/groups/create', async (req, res) => {
     const { groupName, creatorName, tournamentStage, userId } = req.body;
 
@@ -723,6 +838,78 @@ app.get('/api/groups/:id/summary', async (req, res) => {
     return res.json({
         success: true,
         summary: buildGroupSummary(groupClone, currentUserId)
+    });
+});
+
+app.get('/api/groups/:id/dashboard', async (req, res) => {
+    const groupId = req.params.id;
+    const currentUserId = String(req.query.userId || '').trim() || null;
+
+    if (db) {
+        try {
+            const [mongoGroup, mongoPredictionsDoc] = await Promise.all([
+                db.collection('groups').findOne({ _id: groupId }),
+                db.collection('predictions').findOne({ _id: groupId })
+            ]);
+
+            if (mongoGroup) {
+                const group = JSON.parse(JSON.stringify(mongoGroup));
+                delete group._id;
+
+                const memberIds = Object.keys(group.members || {});
+                if (memberIds.length > 0) {
+                    const users = await db.collection('users').find({ _id: { $in: memberIds } }).toArray();
+                    const usersById = users.reduce((acc, user) => {
+                        acc[user._id] = user;
+                        return acc;
+                    }, {});
+
+                    memberIds.forEach((userId) => {
+                        if (!group.members[userId]) return;
+                        if (!group.members[userId].userName) {
+                            group.members[userId].userName = usersById[userId] ? usersById[userId].name : 'Participant';
+                        }
+                    });
+                }
+
+                let groupPredictions = {};
+                if (mongoPredictionsDoc) {
+                    if (mongoPredictionsDoc.predictions && typeof mongoPredictionsDoc.predictions === 'object') {
+                        groupPredictions = mongoPredictionsDoc.predictions;
+                    } else if (mongoPredictionsDoc.users && typeof mongoPredictionsDoc.users === 'object') {
+                        groupPredictions = mongoPredictionsDoc.users;
+                    }
+                }
+
+                return res.json({
+                    success: true,
+                    dashboard: buildGroupDashboard(group, groupPredictions, currentUserId)
+                });
+            }
+        } catch (error) {
+            console.error('Mongo group dashboard failed, falling back to JSON:', error);
+        }
+    }
+
+    const fileDB = readDB();
+    const group = fileDB.groups[groupId];
+
+    if (!group) {
+        return res.status(404).json({ success: false, message: 'הקבוצה לא קיימת' });
+    }
+
+    const groupClone = JSON.parse(JSON.stringify(group));
+    const members = groupClone.members || {};
+    Object.keys(members).forEach((userId) => {
+        if (!members[userId].userName && fileDB.users[userId]) {
+            members[userId].userName = fileDB.users[userId].name;
+        }
+    });
+
+    const groupPredictions = fileDB.predictions[groupId] || {};
+    return res.json({
+        success: true,
+        dashboard: buildGroupDashboard(groupClone, groupPredictions, currentUserId)
     });
 });
 
