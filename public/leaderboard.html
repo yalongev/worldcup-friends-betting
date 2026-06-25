@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/design-system.css">
+    <script defer src="/stage2-localization.js"></script>
     <title>לוח תוצאות וניחושים</title>
     <style>
         body { font-family: system-ui, Arial; background: #eef2f3; padding: 20px; direction: rtl; }
@@ -100,25 +102,25 @@
     let globalGroupName = "";
 
     const translations = {
-        "Argentina": "ארגנטינה 🇦🇷", "Brazil": "ברזיל 🇧🇷", "France": "צרפת 🇫🇷", "Germany": "גרמניה 🇩🇪",
-        "Mbappe": "קיליאן אמבפה 🇫🇷", "Messi": "ליונל מסי 🇦🇷", "Kane": "הארי קיין 🏴󠁧󠁢󠁥󠁮󠁧󠁿", "Ronaldo": "כריסטיאנו רונלדו 🇵🇹"
+        "Argentina": "Argentina 🇦🇷", "Brazil": "Brazil 🇧🇷", "France": "France 🇫🇷", "Germany": "Germany 🇩🇪",
+        "Mbappe": "Kylian Mbappe 🇫🇷", "Messi": "Lionel Messi 🇦🇷", "Kane": "Harry Kane 🏴", "Ronaldo": "Cristiano Ronaldo 🇵🇹"
     };
     const teamLabelMap = {
         ...translations,
         // Top scorers ids saved by bet form.
-        mbappe: "קיליאן אמבפה (צרפת)",
-        haaland: "ארלינג הולאנד (נורווגיה)",
-        vinicius: "ויניסיוס ג'וניור (ברזיל)",
-        bellingham: "ג'וד בלינגהאם (אנגליה)",
-        kane: "הארי קיין (אנגליה)",
-        messi: "לאונל מסי (ארגנטינה)",
-        ronaldo: "כריסטיאנו רונאלדו (פורטוגל)",
-        yamal: "לאמין ימאל (ספרד)",
-        musiala: "ג'מאל מוסיאלה (גרמניה)",
-        martinez: "לאוטרו מרטינז (ארגנטינה)",
-        lewandowski: "רוברט לבנדובסקי (פולין)",
-        alvarez: "חוליאן אלברז (ארגנטינה)",
-        other: "שחקן אחר"
+        mbappe: "Kylian Mbappe (France)",
+        haaland: "Erling Haaland (Norway)",
+        vinicius: "Vinicius Junior (Brazil)",
+        bellingham: "Jude Bellingham (England)",
+        kane: "Harry Kane (England)",
+        messi: "Lionel Messi (Argentina)",
+        ronaldo: "Cristiano Ronaldo (Portugal)",
+        yamal: "Lamine Yamal (Spain)",
+        musiala: "Jamal Musiala (Germany)",
+        martinez: "Lautaro Martinez (Argentina)",
+        lewandowski: "Robert Lewandowski (Poland)",
+        alvarez: "Julian Alvarez (Argentina)",
+        other: "Other player"
     };
 
     async function loadWorldCupTeamsForLeaderboard() {
@@ -148,7 +150,7 @@
     }
 
     function formatTeamLabel(teamKey) {
-        if (!teamKey) return 'טרם ניחש';
+        if (!teamKey) return 'No prediction yet';
         const normalizedKey = String(teamKey);
         const lowerKey = normalizedKey.toLowerCase();
         return teamLabelMap[normalizedKey] || teamLabelMap[lowerKey] || teamLabelMap[teamKey] || teamKey;

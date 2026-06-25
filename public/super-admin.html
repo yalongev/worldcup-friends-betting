@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/design-system.css">
+    <script defer src="/stage2-localization.js"></script>
     <title>Super Admin Dashboard - מנהל מערכת</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -126,7 +128,7 @@
             data: {
                 labels: Object.keys(data.charts.groupCreationDays),
                 datasets: [{
-                    label: 'קבוצות שנוצרו',
+                    label: 'Groups Created',
                     data: Object.values(data.charts.groupCreationDays),
                     backgroundColor: '#1e3c72',
                     borderRadius: 4
@@ -140,7 +142,7 @@
         new Chart(typesCtx, {
             type: 'pie',
             data: {
-                labels: ['משלב הבתים', 'משמינית הגמר', 'מרבע הגמר'],
+                labels: ['From Group Stage', 'From Round of 16', 'From Quarterfinal'],
                 datasets: [{
                     data: [
                         data.charts.tournamentTypes.full,

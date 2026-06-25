@@ -90,7 +90,7 @@ Notes:
 - Remaining manual step: rotate previously exposed credentials in external services and update deployment secrets.
 
 ### Stage 1: Current-State Audit
-Status: Not started
+Status: Complete
 
 Goals:
 - Map server routes and data flow.
@@ -102,12 +102,12 @@ Definition of Done:
 - Technical roadmap refined by module.
 
 Checklist:
-- [ ] Review `server.js` endpoints and middleware.
-- [ ] Review public pages and navigation flow.
-- [ ] Review `database.json` structures and edge cases.
+- [x] Review `server.js` endpoints and middleware.
+- [x] Review public pages and navigation flow.
+- [x] Review `database.json` structures and edge cases.
 
 ### Stage 2: Design System + English Localization
-Status: Not started
+Status: Complete
 
 Goals:
 - Establish premium dark sports visual language.
@@ -120,9 +120,9 @@ Definition of Done:
 - Responsive behavior is verified on mobile and desktop.
 
 Checklist:
-- [ ] Define color, spacing, typography, and motion tokens.
-- [ ] Replace Hebrew UI labels with English copy.
-- [ ] Unify button, card, input styles, and transitions.
+- [x] Define color, spacing, typography, and motion tokens.
+- [x] Replace Hebrew UI labels with English copy.
+- [x] Unify button, card, input styles, and transitions.
 
 ### Stage 3: Google OAuth + Sessions
 Status: Not started
@@ -261,8 +261,8 @@ Checklist:
 
 ## 6. Progress Board
 - [ ] Stage 0 complete
-- [ ] Stage 1 complete
-- [ ] Stage 2 complete
+- [x] Stage 1 complete
+- [x] Stage 2 complete
 - [ ] Stage 3 complete
 - [ ] Stage 4 complete
 - [ ] Stage 5 complete

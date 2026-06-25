@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/design-system.css">
+    <script defer src="/stage2-localization.js"></script>
     <title>ניהול קבוצה ותשלומים</title>
     <style>
         body { font-family: system-ui, Arial; background: #eef2f3; padding: 20px; direction: rtl; }
@@ -140,6 +142,11 @@
     const urlParams = new URLSearchParams(window.location.search);
     const CURRENT_GROUP_ID = urlParams.get('groupId') || "group_test123";
 
+function getCurrentSessionUserId() {
+    const sessions = JSON.parse(localStorage.getItem('worldcup_sessions') || '{}');
+    return sessions[CURRENT_GROUP_ID]?.userId || null;
+}
+
 async function loadAdminPanel() {
     try {
         const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}`);
@@ -245,6 +252,8 @@ async function loadAdminPanel() {
 
 // פונקציה שמעדכנת את השרת בלייב על שינוי סטטוס תשלום
 async function togglePayment(userId, currentStatus) {
+    const adminUserId = getCurrentSessionUserId();
+
     try {
         const res = await fetch('/api/groups/toggle-payment', {
             method: 'POST',
@@ -252,7 +261,8 @@ async function togglePayment(userId, currentStatus) {
             body: JSON.stringify({
                 groupId: CURRENT_GROUP_ID,
                 userId: userId,
-                hasPaid: !currentStatus // הופך את הסטטוס הנוכחי
+                hasPaid: !currentStatus, // הופך את הסטטוס הנוכחי
+                adminUserId
             })
         });
         const data = await res.json();
@@ -336,6 +346,7 @@ function cancelPayboxLinkEdit() {
 
 async function savePayboxLink() {
     const link = document.getElementById('payboxLinkInput').value.trim();
+    const adminUserId = getCurrentSessionUserId();
     const statusDiv = document.getElementById('payboxLinkStatus');
     if (link !== '' && !/^https?:\/\//.test(link)) {
         statusDiv.style.color = '#d32f2f';
@@ -347,7 +358,7 @@ async function savePayboxLink() {
         const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/update-paybox-link`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ payboxLink: link })
+            body: JSON.stringify({ payboxLink: link, adminUserId })
         });
         const data = await res.json();
         if (data.success) {
@@ -368,6 +379,7 @@ async function savePayboxLink() {
 
 async function saveEntryFee() {
     const amount = Number(document.getElementById('entryFeeInput').value);
+    const adminUserId = getCurrentSessionUserId();
     const statusDiv = document.getElementById('entryFeeStatus');
     if (isNaN(amount) || amount < 0) {
         statusDiv.innerText = 'נא להזין סכום תקין חיובי.';
@@ -378,7 +390,7 @@ async function saveEntryFee() {
         const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/update-entry-fee`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entryFee: amount })
+            body: JSON.stringify({ entryFee: amount, adminUserId })
         });
         const data = await res.json();
         if (data.success) {
@@ -403,6 +415,7 @@ async function saveEntryFee() {
 
 async function lockGroupBets() {
     const lockMode = document.querySelector('input[name="lockMode"]:checked').value;
+    const adminUserId = getCurrentSessionUserId();
     
     if(!confirm("האם אתה בטוח שברצונך לנעול את ההימורים? לא ניתן יהיה לבטל פעולה זו!")) return;
 
@@ -410,7 +423,7 @@ async function lockGroupBets() {
         const res = await fetch(`/api/groups/${CURRENT_GROUP_ID}/lock`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lockMode })
+            body: JSON.stringify({ lockMode, adminUserId })
         });
         const data = await res.json();
         
